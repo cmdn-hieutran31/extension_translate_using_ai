@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Generate Extension Icons</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      text-align: center;
+    }
+    .canvas-container {
+      margin: 20px 0;
+      padding: 20px;
+      background: #f5f5f5;
+      border-radius: 8px;
+    }
+    canvas {
+      border: 2px solid #ddd;
+      margin: 10px;
+      background: white;
+    }
+    button {
+      background: #667eea;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      font-size: 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      margin: 10px;
+    }
+    button:hover {
+      background: #5568d3;
+    }
+    .instructions {
+      background: #e3f2fd;
+      padding: 15px;
+      border-radius: 8px;
+      margin: 20px 0;
+      text-align: left;
+    }
+  </style>
+</head>
+<body>
+  <h1>Chrome Extension Icon Generator</h1>
+
+  <div class="instructions">
+    <h3>Instructions:</h3>
+    <ol>
+      <li>Click "Generate Icons" below</li>
+      <li>Right-click each icon and select "Save image as..."</li>
+      <li>Save them to the <code>icons/</code> folder with the names:
+        <ul>
+          <li>icon16.png (16x16)</li>
+          <li>icon48.png (48x48)</li>
+          <li>icon128.png (128x128)</li>
+        </ul>
+      </li>
+    </ol>
+  </div>
+
+  <button onclick="generateIcons()">Generate Icons</button>
+
+  <div class="canvas-container">
+    <h3>16x16 Icon</h3>
+    <canvas id="icon16" width="16" height="16"></canvas>
+    <a id="download16" download="icon16.png">Download</a>
+  </div>
+
+  <div class="canvas-container">
+    <h3>48x48 Icon</h3>
+    <canvas id="icon48" width="48" height="48"></canvas>
+    <a id="download48" download="icon48.png">Download</a>
+  </div>
+
+  <div class="canvas-container">
+    <h3>128x128 Icon</h3>
+    <canvas id="icon128" width="128" height="128"></canvas>
+    <a id="download128" download="icon128.png">Download</a>
+  </div>
+
+  <script>
+    function drawIcon(canvas, size) {
+      const ctx = canvas.getContext('2d');
+
+      // Background gradient
+      const gradient = ctx.createLinearGradient(0, 0, size, size);
+      gradient.addColorStop(0, '#667eea');
+      gradient.addColorStop(1, '#764ba2');
+
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, size, size);
+
+      // Draw "T" for Translate
+      ctx.fillStyle = 'white';
+      ctx.font = `bold ${size * 0.6}px Arial`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('T', size / 2, size / 2);
+
+      // Add language symbol
+      ctx.font = `${size * 0.25}px Arial`;
+      ctx.fillText('文', size / 2, size * 0.75);
+    }
+
+    function downloadCanvas(canvas, filename, linkId) {
+      const link = document.getElementById(linkId);
+      link.href = canvas.toDataURL('image/png');
+    }
+
+    function generateIcons() {
+      const canvas16 = document.getElementById('icon16');
+      const canvas48 = document.getElementById('icon48');
+      const canvas128 = document.getElementById('icon128');
+
+      drawIcon(canvas16, 16);
+      drawIcon(canvas48, 48);
+      drawIcon(canvas128, 128);
+
+      downloadCanvas(canvas16, 'icon16.png', 'download16');
+      downloadCanvas(canvas48, 'icon48.png', 'download48');
+      downloadCanvas(canvas128, 'icon128.png', 'download128');
+    }
+
+    // Auto-generate on page load
+    window.onload = generateIcons;
+  </script>
+</body>
+</html>

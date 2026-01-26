@@ -1,0 +1,250 @@
+// Settings page JavaScript
+
+// DOM Elements
+const apiKeyInput = document.getElementById('apiKey');
+const toggleApiKeyBtn = document.getElementById('toggleApiKey');
+const targetLangSelect = document.getElementById('targetLang');
+const saveApiKeyBtn = document.getElementById('saveApiKey');
+const grammarCheckToggle = document.getElementById('grammarCheckEnabled');
+const inlineTranslationToggle = document.getElementById('inlineTranslationEnabled');
+const myMemoryUsage = document.getElementById('myMemoryUsage');
+const myMemoryProgressBar = document.getElementById('myMemoryProgressBar');
+const grammarUsage = document.getElementById('grammarUsage');
+const aiTranslateUsage = document.getElementById('aiTranslateUsage');
+const resetTimeElement = document.getElementById('resetTime');
+
+// State
+let apiKeyVisible = false;
+
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+  loadSettings();
+  loadUsageStats();
+  setupEventListeners();
+});
+
+// Load saved settings
+async function loadSettings() {
+  try {
+    const data = await chrome.storage.local.get(['apiKey', 'savedTargetLang', 'grammarCheckEnabled', 'inlineTranslationEnabled']);
+
+    if (data.apiKey) {
+      apiKeyInput.value = data.apiKey;
+    }
+
+    if (data.savedTargetLang) {
+      targetLangSelect.value = data.savedTargetLang;
+    }
+
+    if (data.grammarCheckEnabled !== undefined) {
+      grammarCheckToggle.checked = data.grammarCheckEnabled;
+    }
+
+    if (data.inlineTranslationEnabled !== undefined) {
+      inlineTranslationToggle.checked = data.inlineTranslationEnabled;
+    }
+  } catch (error) {
+    console.error('Failed to load settings:', error);
+  }
+}
+
+// Load usage statistics
+async function loadUsageStats() {
+  try {
+    const data = await chrome.storage.local.get([
+      'myMemoryChars', 'myMemoryLastDate',
+      'grammarCheckCount', 'grammarLastDate',
+      'aiTranslateCount', 'aiTranslateLastDate'
+    ]);
+
+    const today = new Date().toDateString();
+
+    // MyMemory quota
+    const myMemoryLastDate = data.myMemoryLastDate || today;
+    if (today !== myMemoryLastDate) {
+      await chrome.storage.local.set({
+        myMemoryChars: 0,
+        myMemoryLastDate: today
+      });
+      updateMyMemoryDisplay(0);
+    } else {
+      updateMyMemoryDisplay(data.myMemoryChars || 0);
+    }
+
+    // Grammar Check usage
+    const grammarLastDate = data.grammarLastDate || today;
+    if (today !== grammarLastDate) {
+      await chrome.storage.local.set({
+        grammarCheckCount: 0,
+        grammarLastDate: today
+      });
+      grammarUsage.textContent = '0 / 20';
+    } else {
+      const grammarCount = data.grammarCheckCount || 0;
+      grammarUsage.textContent = `${grammarCount} / 20`;
+    }
+
+    // AI Translate usage
+    const aiTranslateLastDate = data.aiTranslateLastDate || today;
+    if (today !== aiTranslateLastDate) {
+      await chrome.storage.local.set({
+        aiTranslateCount: 0,
+        aiTranslateLastDate: today
+      });
+      aiTranslateUsage.textContent = '0 / 20';
+    } else {
+      const aiCount = data.aiTranslateCount || 0;
+      aiTranslateUsage.textContent = `${aiCount} / 20`;
+    }
+
+    // Calculate reset time
+    updateResetTime();
+  } catch (error) {
+    console.error('Failed to load usage stats:', error);
+  }
+}
+
+// Update MyMemory display with progress bar
+function updateMyMemoryDisplay(charsUsed) {
+  const MY_MEMORY_DAILY_LIMIT = 10000;
+  myMemoryUsage.textContent = `${charsUsed.toLocaleString()} / ${MY_MEMORY_DAILY_LIMIT.toLocaleString()}`;
+
+  const percentage = Math.min((charsUsed / MY_MEMORY_DAILY_LIMIT) * 100, 100);
+  myMemoryProgressBar.style.width = `${percentage}%`;
+
+  // Update progress bar color based on usage
+  myMemoryProgressBar.classList.remove('warning', 'danger');
+  if (percentage >= 90) {
+    myMemoryProgressBar.classList.add('danger');
+  } else if (percentage >= 70) {
+    myMemoryProgressBar.classList.add('warning');
+  }
+}
+
+// Update reset time display
+function updateResetTime() {
+  const now = new Date();
+  const tomorrow = new Date(now);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  tomorrow.setHours(0, 0, 0, 0);
+
+  const diff = tomorrow - now;
+  const hours = Math.floor(diff / (1000 * 60 * 60));
+  const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+  resetTimeElement.textContent = `Next reset: ${hours}h ${minutes}m`;
+}
+
+// Setup event listeners
+function setupEventListeners() {
+  // Toggle API key visibility
+  toggleApiKeyBtn.addEventListener('click', () => {
+    apiKeyVisible = !apiKeyVisible;
+    apiKeyInput.type = apiKeyVisible ? 'text' : 'password';
+    toggleApiKeyBtn.textContent = apiKeyVisible ? '🙈' : '👁️';
+  });
+
+  // Save API key
+  saveApiKeyBtn.addEventListener('click', async () => {
+    const apiKey = apiKeyInput.value.trim();
+
+    if (!apiKey) {
+      showToast('Please enter your API key', 'error');
+      return;
+    }
+
+    try {
+      await chrome.storage.local.set({
+        apiKey: apiKey,
+        savedTargetLang: targetLangSelect.value
+      });
+      showToast('API key saved successfully!', 'success');
+
+      // Notify all tabs to update
+      chrome.tabs.query({}, (tabs) => {
+        tabs.forEach(tab => {
+          chrome.tabs.sendMessage(tab.id, { action: 'settingsUpdated' }).catch(() => {
+            // Ignore errors for tabs without content script
+          });
+        });
+      });
+    } catch (error) {
+      console.error('Failed to save API key:', error);
+      showToast('Failed to save API key', 'error');
+    }
+  });
+
+  // Save language preference
+  targetLangSelect.addEventListener('change', async () => {
+    try {
+      await chrome.storage.local.set({ savedTargetLang: targetLangSelect.value });
+      showToast('Language preference saved', 'success');
+    } catch (error) {
+      console.error('Failed to save language:', error);
+    }
+  });
+
+  // Toggle grammar check
+  grammarCheckToggle.addEventListener('change', async () => {
+    try {
+      await chrome.storage.local.set({ grammarCheckEnabled: grammarCheckToggle.checked });
+      showToast(grammarCheckToggle.checked ? 'Grammar check enabled' : 'Grammar check disabled', 'success');
+
+      // Notify all tabs
+      chrome.tabs.query({}, (tabs) => {
+        tabs.forEach(tab => {
+          chrome.tabs.sendMessage(tab.id, { action: 'settingsUpdated' }).catch(() => {});
+        });
+      });
+    } catch (error) {
+      console.error('Failed to update grammar check setting:', error);
+      showToast('Failed to update setting', 'error');
+    }
+  });
+
+  // Toggle inline translation
+  inlineTranslationToggle.addEventListener('change', async () => {
+    try {
+      await chrome.storage.local.set({ inlineTranslationEnabled: inlineTranslationToggle.checked });
+      showToast(inlineTranslationToggle.checked ? 'Inline translation enabled' : 'Inline translation disabled', 'success');
+
+      // Notify all tabs
+      chrome.tabs.query({}, (tabs) => {
+        tabs.forEach(tab => {
+          chrome.tabs.sendMessage(tab.id, { action: 'settingsUpdated' }).catch(() => {});
+        });
+      });
+    } catch (error) {
+      console.error('Failed to update inline translation setting:', error);
+      showToast('Failed to update setting', 'error');
+    }
+  });
+}
+
+// Show toast notification
+function showToast(message, type = 'info') {
+  const toast = document.getElementById('toast');
+  const toastMessage = document.getElementById('toast-message');
+
+  toastMessage.textContent = message;
+  toast.className = 'toast show ' + type;
+
+  setTimeout(() => {
+    toast.className = 'toast';
+  }, 3000);
+}
+
+// Listen for messages from background script
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === 'updateUsageStats') {
+    loadUsageStats();
+  } else if (request.action === 'reloadSettings') {
+    loadSettings();
+  }
+  return true;
+});
+
+// Update reset time every minute
+setInterval(() => {
+  updateResetTime();
+}, 60000);

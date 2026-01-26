@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Translator</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>AI Translator</h1>
+      <div class="status" id="status"></div>
+    </div>
+
+    <div class="api-section">
+      <div class="input-group">
+        <label for="apiKey">Gemini API Key:</label>
+        <input type="password" id="apiKey" placeholder="Enter your API key">
+        <button id="saveKey" class="btn-small">Save</button>
+      </div>
+      <p class="help-text">
+        Get your API key from <a href="https://aistudio.google.com/app/apikey" target="_blank">Google AI Studio</a>
+      </p>
+    </div>
+
+    <!-- Image Upload Section -->
+    <div class="image-section">
+      <div class="section-header">
+        <label>Translate from Image:</label>
+        <span id="clearImageBtn" class="link-btn" style="display: none;">Clear Image</span>
+      </div>
+      <div id="imageUploadArea" class="image-upload-area">
+        <div class="upload-placeholder">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+            <polyline points="21 15 16 10 5 21"></polyline>
+          </svg>
+          <p>Paste image (Ctrl+V) or click to upload</p>
+          <span class="upload-hint">Supports JPG, PNG, WebP • Drag & drop also works</span>
+        </div>
+        <img id="uploadedImage" class="uploaded-image" style="display: none;" alt="Uploaded image">
+        <input type="file" id="imageInput" accept="image/jpeg,image/png,image/webp,image/gif" style="display: none;">
+      </div>
+      <div id="extractedTextSection" class="extracted-text-section" style="display: none;">
+        <div class="section-header">
+          <label>Extracted Text:</label>
+          <span id="useExtractedBtn" class="link-btn">Use This Text</span>
+        </div>
+        <div id="extractedText" class="result-text"></div>
+      </div>
+    </div>
+
+    <div class="translation-section">
+      <div class="source-section">
+        <div class="section-header">
+          <label>Source Text:</label>
+          <span id="clearBtn" class="link-btn">Clear</span>
+        </div>
+        <textarea id="sourceText" placeholder="Select text on a page, upload an image, or type here to translate..."></textarea>
+      </div>
+
+      <div class="controls">
+        <div class="language-selector">
+          <label for="targetLang">Target Language:</label>
+          <select id="targetLang">
+            <option value="en">English</option>
+            <option value="vi">Vietnamese</option>
+            <option value="es">Spanish</option>
+            <option value="fr">French</option>
+            <option value="de">German</option>
+            <option value="it">Italian</option>
+            <option value="pt">Portuguese</option>
+            <option value="ru">Russian</option>
+            <option value="ja">Japanese</option>
+            <option value="ko">Korean</option>
+            <option value="zh">Chinese</option>
+            <option value="ar">Arabic</option>
+            <option value="hi">Hindi</option>
+          </select>
+        </div>
+        <div class="button-group">
+          <button id="translateBtn" class="btn-primary">
+            <span class="btn-text">Translate</span>
+          </button>
+          <button id="grammarBtn" class="btn-secondary">
+            <span class="btn-text">Check Grammar</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="result-section">
+        <div class="section-header">
+          <label>Translation:</label>
+          <div class="result-actions">
+            <span id="retranslateBtn" class="link-btn" style="display: none;">✨ Translate with AI</span>
+            <span id="copyBtn" class="link-btn">Copy</span>
+          </div>
+        </div>
+        <div id="translationResult" class="result-text">
+          <span class="placeholder">Translation will appear here...</span>
+        </div>
+        <div id="translationSource" class="translation-source"></div>
+      </div>
+
+      <div class="result-section" id="grammarSection" style="display: none;">
+        <div class="section-header">
+          <label>Grammar Check:</label>
+          <span id="copyGrammarBtn" class="link-btn">Copy Corrected</span>
+        </div>
+        <div id="grammarResult" class="result-text">
+          <span class="placeholder">Grammar check results will appear here...</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer">
+      <button id="openSettingsBtn" class="btn-link">⚙️ Settings</button>
+      <p>Powered by Google Gemini AI</p>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
