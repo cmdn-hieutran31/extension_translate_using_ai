@@ -26,7 +26,12 @@ document.addEventListener('DOMContentLoaded', () => {
 // Load saved settings
 async function loadSettings() {
   try {
-    const data = await chrome.storage.local.get(['apiKey', 'savedTargetLang', 'grammarCheckEnabled', 'inlineTranslationEnabled']);
+    const data = await chrome.storage.local.get([
+      'apiKey',
+      'savedTargetLang',
+      'grammarCheckEnabled',
+      'inlineTranslationEnabled',
+    ]);
 
     if (data.apiKey) {
       apiKeyInput.value = data.apiKey;
@@ -52,9 +57,12 @@ async function loadSettings() {
 async function loadUsageStats() {
   try {
     const data = await chrome.storage.local.get([
-      'myMemoryChars', 'myMemoryLastDate',
-      'grammarCheckCount', 'grammarLastDate',
-      'aiTranslateCount', 'aiTranslateLastDate'
+      'myMemoryChars',
+      'myMemoryLastDate',
+      'grammarCheckCount',
+      'grammarLastDate',
+      'aiTranslateCount',
+      'aiTranslateLastDate',
     ]);
 
     const today = new Date().toDateString();
@@ -64,7 +72,7 @@ async function loadUsageStats() {
     if (today !== myMemoryLastDate) {
       await chrome.storage.local.set({
         myMemoryChars: 0,
-        myMemoryLastDate: today
+        myMemoryLastDate: today,
       });
       updateMyMemoryDisplay(0);
     } else {
@@ -76,12 +84,13 @@ async function loadUsageStats() {
     if (today !== grammarLastDate) {
       await chrome.storage.local.set({
         grammarCheckCount: 0,
-        grammarLastDate: today
+        grammarLastDate: today,
       });
-      grammarUsage.textContent = '0 / 20';
+      // Show count / Unlimited (since limit is per minute)
+      grammarUsage.innerHTML = `0 <span style="font-size: 0.8em; color: #6b7280; font-weight: normal;">(Limit: 20/min)</span>`;
     } else {
       const grammarCount = data.grammarCheckCount || 0;
-      grammarUsage.textContent = `${grammarCount} / 20`;
+      grammarUsage.innerHTML = `${grammarCount} <span style="font-size: 0.8em; color: #6b7280; font-weight: normal;">(Limit: 20/min)</span>`;
     }
 
     // AI Translate usage
@@ -89,7 +98,7 @@ async function loadUsageStats() {
     if (today !== aiTranslateLastDate) {
       await chrome.storage.local.set({
         aiTranslateCount: 0,
-        aiTranslateLastDate: today
+        aiTranslateLastDate: today,
       });
       aiTranslateUsage.textContent = '0 / 20';
     } else {
@@ -156,16 +165,18 @@ function setupEventListeners() {
     try {
       await chrome.storage.local.set({
         apiKey: apiKey,
-        savedTargetLang: targetLangSelect.value
+        savedTargetLang: targetLangSelect.value,
       });
       showToast('API key saved successfully!', 'success');
 
       // Notify all tabs to update
       chrome.tabs.query({}, (tabs) => {
-        tabs.forEach(tab => {
-          chrome.tabs.sendMessage(tab.id, { action: 'settingsUpdated' }).catch(() => {
-            // Ignore errors for tabs without content script
-          });
+        tabs.forEach((tab) => {
+          chrome.tabs
+            .sendMessage(tab.id, { action: 'settingsUpdated' })
+            .catch(() => {
+              // Ignore errors for tabs without content script
+            });
         });
       });
     } catch (error) {
@@ -177,7 +188,9 @@ function setupEventListeners() {
   // Save language preference
   targetLangSelect.addEventListener('change', async () => {
     try {
-      await chrome.storage.local.set({ savedTargetLang: targetLangSelect.value });
+      await chrome.storage.local.set({
+        savedTargetLang: targetLangSelect.value,
+      });
       showToast('Language preference saved', 'success');
     } catch (error) {
       console.error('Failed to save language:', error);
@@ -187,13 +200,22 @@ function setupEventListeners() {
   // Toggle grammar check
   grammarCheckToggle.addEventListener('change', async () => {
     try {
-      await chrome.storage.local.set({ grammarCheckEnabled: grammarCheckToggle.checked });
-      showToast(grammarCheckToggle.checked ? 'Grammar check enabled' : 'Grammar check disabled', 'success');
+      await chrome.storage.local.set({
+        grammarCheckEnabled: grammarCheckToggle.checked,
+      });
+      showToast(
+        grammarCheckToggle.checked
+          ? 'Grammar check enabled'
+          : 'Grammar check disabled',
+        'success'
+      );
 
       // Notify all tabs
       chrome.tabs.query({}, (tabs) => {
-        tabs.forEach(tab => {
-          chrome.tabs.sendMessage(tab.id, { action: 'settingsUpdated' }).catch(() => {});
+        tabs.forEach((tab) => {
+          chrome.tabs
+            .sendMessage(tab.id, { action: 'settingsUpdated' })
+            .catch(() => { });
         });
       });
     } catch (error) {
@@ -205,13 +227,22 @@ function setupEventListeners() {
   // Toggle inline translation
   inlineTranslationToggle.addEventListener('change', async () => {
     try {
-      await chrome.storage.local.set({ inlineTranslationEnabled: inlineTranslationToggle.checked });
-      showToast(inlineTranslationToggle.checked ? 'Inline translation enabled' : 'Inline translation disabled', 'success');
+      await chrome.storage.local.set({
+        inlineTranslationEnabled: inlineTranslationToggle.checked,
+      });
+      showToast(
+        inlineTranslationToggle.checked
+          ? 'Inline translation enabled'
+          : 'Inline translation disabled',
+        'success'
+      );
 
       // Notify all tabs
       chrome.tabs.query({}, (tabs) => {
-        tabs.forEach(tab => {
-          chrome.tabs.sendMessage(tab.id, { action: 'settingsUpdated' }).catch(() => {});
+        tabs.forEach((tab) => {
+          chrome.tabs
+            .sendMessage(tab.id, { action: 'settingsUpdated' })
+            .catch(() => { });
         });
       });
     } catch (error) {

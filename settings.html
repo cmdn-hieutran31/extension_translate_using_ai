@@ -1,19 +1,23 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
+
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>AI Translator Settings</title>
-  <link rel="stylesheet" href="settings.css">
+  <link rel="stylesheet" href="settings.css" />
 </head>
+
 <body>
   <div class="container">
     <header>
       <div class="logo">
-        <img src="icons/icon48.png" alt="AI Translator" width="48" height="48">
+        <img src="icons/icon48.png" alt="AI Translator" width="48" height="48" />
         <h1>AI Translator & Grammar Check</h1>
       </div>
-      <p class="subtitle">Powerful AI-powered translation and grammar checking</p>
+      <p class="subtitle">
+        Powerful AI-powered translation and grammar checking
+      </p>
     </header>
 
     <main>
@@ -26,11 +30,14 @@
           <div class="form-group">
             <label for="apiKey">Gemini API Key</label>
             <div class="input-group">
-              <input type="password" id="apiKey" placeholder="Enter your Gemini API key">
-              <button id="toggleApiKey" class="icon-button">👁️</button>
+              <input type="password" id="apiKey" placeholder="Enter your Gemini API key" />
+              <button id="toggleApiKey" class="icon-button">
+                👁️
+              </button>
             </div>
             <small class="help-text">
-              Get your free API key from <a href="https://aistudio.google.com/app/apikey" target="_blank">Google AI Studio</a>
+              Get your free API key from
+              <a href="https://aistudio.google.com/app/apikey" target="_blank">Google AI Studio</a>
             </small>
           </div>
           <div class="form-group">
@@ -51,7 +58,9 @@
               <option value="hi">Hindi</option>
             </select>
           </div>
-          <button id="saveApiKey" class="btn btn-primary">💾 Save API Key</button>
+          <button id="saveApiKey" class="btn btn-primary">
+            💾 Save API Key
+          </button>
         </div>
       </section>
 
@@ -64,10 +73,12 @@
           <div class="feature-item">
             <div class="feature-info">
               <h3>Grammar Check</h3>
-              <p>Auto-check grammar in textareas and input fields</p>
+              <p>
+                Auto-check grammar in textareas and input fields
+              </p>
             </div>
             <label class="toggle">
-              <input type="checkbox" id="grammarCheckEnabled" checked>
+              <input type="checkbox" id="grammarCheckEnabled" checked />
               <span class="slider"></span>
             </label>
           </div>
@@ -77,7 +88,7 @@
               <p>Show translate icon when text is selected</p>
             </div>
             <label class="toggle">
-              <input type="checkbox" id="inlineTranslationEnabled" checked>
+              <input type="checkbox" id="inlineTranslationEnabled" checked />
               <span class="slider"></span>
             </label>
           </div>
@@ -93,7 +104,9 @@
           <div class="stats-grid">
             <div class="stat-item">
               <div class="stat-label">MyMemory API</div>
-              <div class="stat-value" id="myMemoryUsage">0 / 10,000</div>
+              <div class="stat-value" id="myMemoryUsage">
+                0 / 10,000
+              </div>
               <div class="stat-sub">characters today</div>
               <div class="stat-progress">
                 <div class="stat-progress-bar" id="myMemoryProgressBar"></div>
@@ -101,12 +114,21 @@
             </div>
             <div class="stat-item">
               <div class="stat-label">Grammar Check</div>
-              <div class="stat-value" id="grammarUsage">0 / 20</div>
+              <div class="stat-value" id="grammarUsage">
+                0
+                <span style="
+                                            font-size: 12px;
+                                            color: #6b7280;
+                                            font-weight: normal;
+                                        ">(Limit: 20/min)</span>
+              </div>
               <div class="stat-sub">requests today</div>
             </div>
             <div class="stat-item">
               <div class="stat-label">AI Translation</div>
-              <div class="stat-value" id="aiTranslateUsage">0 / 20</div>
+              <div class="stat-value" id="aiTranslateUsage">
+                0 / 20
+              </div>
               <div class="stat-sub">requests today</div>
             </div>
           </div>
@@ -151,11 +173,18 @@
         <div class="card-body">
           <p><strong>Author:</strong> Hieu Tran H</p>
           <p><strong>Version:</strong> 1.1.0</p>
-          <p><strong>Description:</strong> AI-powered translation and grammar checking using Gemini API and LanguageTool</p>
-          <p><strong>Privacy:</strong> Your API key is stored locally in your browser. No data is sent to third parties.</p>
+          <p>
+            <strong>Description:</strong> AI-powered translation and
+            grammar checking using Gemini API and LanguageTool
+          </p>
+          <p>
+            <strong>Privacy:</strong> Your API key is stored locally
+            in your browser. No data is sent to third parties.
+          </p>
           <div class="links">
             <a href="https://ai.google.dev/gemini-api/docs" target="_blank">Gemini API Docs</a>
             <a href="https://languagetool.org/" target="_blank">LanguageTool</a>
+            <a href="https://pub.dev/documentation/mymemory_translate/latest/" target="_blank">MyMemory API</a>
           </div>
         </div>
       </section>
@@ -168,4 +197,5 @@
 
   <script src="settings.js"></script>
 </body>
+
 </html>
