@@ -675,10 +675,10 @@ async function handleGrammarCheck(text) {
     showNotification('Checking Grammar', 'Checking grammar...');
 
     try {
-        const correctedText = await checkGrammar(text);
+        const result = await checkGrammar(text);
 
-        if (correctedText !== text) {
-            showGrammarDiff(text, correctedText);
+        if (result.data !== text) {
+            showGrammarDiff(text, result.data, result.source);
         } else {
             showNotification('No Grammar Errors', 'Your text looks good!');
         }
@@ -688,18 +688,16 @@ async function handleGrammarCheck(text) {
     }
 }
 
-async function checkGrammar(text) {
-    const { apiKey } = await chrome.storage.local.get('apiKey');
-
-    if (!apiKey) {
-        throw new Error('API key not set');
-    }
+async function checkGrammar(text, forceAI = false) {
+    // Note: We don't block on missing apiKey here anymore because LanguageTool works without it.
+    // The background script will handle missing key error if it needs to fallback to AI.
 
     return new Promise((resolve, reject) => {
         chrome.runtime.sendMessage(
             {
                 action: 'callGrammarCheckAPI',
                 text: text,
+                forceAI: forceAI,
             },
             async (response) => {
                 if (chrome.runtime.lastError) {
@@ -710,7 +708,7 @@ async function checkGrammar(text) {
                 if (response && response.success) {
                     // Track usage on success
                     await trackUsage('grammarCheckCount', 'grammarLastDate');
-                    resolve(response.data);
+                    resolve({ data: response.data, source: response.source });
                 } else {
                     reject(new Error(response ? response.error : 'Unknown error'));
                 }
@@ -792,7 +790,7 @@ function showNotification(title, message) {
     }, 5000);
 }
 
-function showGrammarDiff(original, corrected) {
+function showGrammarDiff(original, corrected, source = 'languagetool') {
     const existing = document.getElementById('ai-grammar-diff');
     if (existing) existing.remove();
 
@@ -818,12 +816,17 @@ function showGrammarDiff(original, corrected) {
         }
     });
 
+    const isAI = source === 'ai';
+    const aiButtonHtml = isAI
+        ? ''
+        : `<button id="ai-deep-check" style="flex: 1; padding: 12px; background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%); color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;">✨ Deep Check (AI)</button>`;
+
     const dialog = document.createElement('div');
     dialog.id = 'ai-grammar-diff';
     dialog.innerHTML = `
     <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; border-radius: 12px; padding: 24px; max-width: 600px; width: 90%; max-height: 80vh; overflow: auto; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2); z-index: 2147483647; color: #1f2937; font-family: sans-serif;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-        <h2 style="margin: 0; font-size: 18px; color: #1f2937;">Grammar Suggestions</h2>
+        <h2 style="margin: 0; font-size: 18px; color: #1f2937;">Grammar Suggestions ${isAI ? '<span style="font-size: 12px; background: #dbeafe; color: #1e40af; padding: 2px 6px; border-radius: 4px; vertical-align: middle;">AI Powered</span>' : ''}</h2>
         <button onclick="this.closest('#ai-grammar-diff').remove()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #6b7280;">×</button>
       </div>
       <div style="margin-bottom: 16px;">
@@ -836,6 +839,7 @@ function showGrammarDiff(original, corrected) {
       </div>
       <div style="display: flex; gap: 12px;">
         <button id="ai-copy-corrected" style="flex: 1; padding: 12px; background: #22c55e; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;">Copy Corrected</button>
+        ${aiButtonHtml}
         <button onclick="this.closest('#ai-grammar-diff').remove()" style="flex: 1; padding: 12px; background: #e5e7eb; color: #374151; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;">Close</button>
       </div>
     </div>
@@ -855,6 +859,26 @@ function showGrammarDiff(original, corrected) {
                 console.error('[AI Translator] Failed to copy:', error);
             }
         });
+
+    if (!isAI) {
+        document.getElementById('ai-deep-check').addEventListener('click', async () => {
+            const btn = document.getElementById('ai-deep-check');
+            btn.textContent = 'Checking with AI...';
+            btn.disabled = true;
+
+            try {
+                // Check if API key exists first? No, let checkGrammar handle error
+                const result = await checkGrammar(original, true); // forceAI = true
+
+                // Remove current dialog and show new one
+                dialog.remove();
+                showGrammarDiff(original, result.data, result.source);
+            } catch (error) {
+                btn.textContent = 'Failed: ' + error.message;
+                btn.style.background = '#ef4444';
+            }
+        });
+    }
 }
 
 // Simple word diff algorithm
@@ -949,9 +973,9 @@ function setupGrammarCheck(element) {
         // Reduced debounce to 1.5s as requested
         const timeout = setTimeout(async () => {
             try {
-                const corrected = await checkGrammar(text);
-                if (corrected !== text) {
-                    showGrammarIndicator(element, text, corrected);
+                const result = await checkGrammar(text);
+                if (result.data !== text) {
+                    showGrammarIndicator(element, text, result.data, result.source);
                 }
             } catch (error) {
                 // Silently fail
@@ -962,7 +986,7 @@ function setupGrammarCheck(element) {
     });
 }
 
-function showGrammarIndicator(element, original, corrected) {
+function showGrammarIndicator(element, original, corrected, source) {
     removeGrammarIndicator(element); // Ensure clean slate
 
     const indicator = document.createElement('div');
@@ -997,7 +1021,7 @@ function showGrammarIndicator(element, original, corrected) {
     indicator.addEventListener('click', (e) => {
         e.stopPropagation();
         e.preventDefault();
-        showGrammarDiff(original, corrected);
+        showGrammarDiff(original, corrected, source);
         indicator.remove();
     });
 

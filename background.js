@@ -523,25 +523,28 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             try {
                 const { apiKey } = await chrome.storage.local.get('apiKey');
 
-                // Try LanguageTool first
-                const ltResult = await checkGrammarWithLanguageTool(request.text);
+                // If forceAI is true, skip LanguageTool and go straight to Gemini
+                if (!request.forceAI) {
+                    // Try LanguageTool first
+                    const ltResult = await checkGrammarWithLanguageTool(request.text);
 
-                if (ltResult.success) {
-                    sendResponse(ltResult);
-                    return;
+                    if (ltResult.success) {
+                        sendResponse(ltResult);
+                        return;
+                    }
+
+                    console.log(
+                        'LanguageTool failed, fallback to Gemini:',
+                        ltResult.error
+                    );
                 }
 
-                console.log(
-                    'LanguageTool failed, fallback to Gemini:',
-                    ltResult.error
-                );
-
-                // Fallback to Gemini
+                // Fallback to Gemini or if forceAI is true
                 if (!apiKey) {
                     sendResponse({
                         success: false,
                         error:
-                            ltResult.error + '. And API Key not found for fallback.',
+                            (request.forceAI ? 'AI Deep Check' : 'LanguageTool fallback') + ' requires an API Key.',
                     });
                     return;
                 }

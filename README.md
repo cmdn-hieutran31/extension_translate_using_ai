@@ -1,154 +1,120 @@
-# AI Translator Chrome Extension
+# AI Translator & Grammar Check Extension - Tài liệu Dự án
 
-A Chrome extension that uses Google Gemini AI to translate text directly in your browser.
+Tài liệu này cung cấp thông tin chi tiết về dự án **AI Translator & Grammar Check**, được biên soạn nhằm mục đích hỗ trợ AI khác đọc và tự động tạo Slide thuyết trình. Nội dung bao gồm tổng quan, tính năng, kiến trúc kỹ thuật và hướng dẫn sử dụng.
 
-## Features
+---
 
-- 🌍 Multi-language support with 13+ languages
-- 🤖 Powered by Google Gemini AI for accurate translations
-- 📋 Easy text selection and translation
-- 💾 Saves your API key and preferences
-- 🎨 Beautiful, modern UI
-- ⌨️ Keyboard shortcut support (Ctrl+Enter to translate)
+## 1. Tổng quan Dự án (Project Overview)
 
-## Supported Languages
+### Tên dự án
 
-- English
-- Vietnamese
-- Spanish
-- French
-- German
-- Italian
-- Portuguese
-- Russian
-- Japanese
-- Korean
-- Chinese
-- Arabic
-- Hindi
+**AI Translator & Grammar Check**
 
-## Installation
+### Giới thiệu (Introduction)
 
-### Step 1: Get Gemini API Key
+Đây là một tiện ích mở rộng (Extension) dành cho trình duyệt Chrome, tích hợp trí tuệ nhân tạo (Google Gemini AI) để hỗ trợ người dùng dịch thuật văn bản, kiểm tra ngữ pháp và trích xuất văn bản từ hình ảnh trực tiếp trên mọi trang web mà không cần chuyển đổi tab.
 
-1. Visit [Google AI Studio](https://aistudio.google.com/app/apikey)
-2. Sign in with your Google account
-3. Click "Create API Key"
-4. Copy your API key
+### Mục tiêu (Goal)
 
-### Step 2: Install the Extension
+Giải quyết vấn đề gián đoạn quy trình làm việc (workflow) khi người dùng phải copy-paste văn bản sang các công cụ dịch thuật bên ngoài. Extension mang lại trải nghiệm liền mạch, thông minh và chính xác nhờ sức mạnh của LLM (Gemini).
 
-1. Open Google Chrome
-2. Navigate to `chrome://extensions/`
-3. Enable "Developer mode" (toggle in the top right)
-4. Click "Load unpacked"
-5. Select the extension_translate folder
+---
 
-### Step 3: Configure the Extension
+## 2. Các Tính năng Chính (Key Features)
 
-1. Click the extension icon in your browser toolbar
-2. Paste your Gemini API key
-3. Click "Save"
+### 🌍 1. Dịch thuật Đa ngôn ngữ Thông minh (Smart Translation)
 
-## Usage
+- **Hỗ trợ 13+ ngôn ngữ**: Tiếng Anh, Việt, Tây Ban Nha, Pháp, Đức, Nhật, Hàn, Trung, v.v.
+- **Dịch theo ngữ cảnh**: Sử dụng Gemini AI để hiểu ngữ cảnh câu văn, mang lại bản dịch tự nhiên hơn so với dịch máy thông thường.
+- **Cơ chế Fallback (Dự phòng)**:
+    - Ưu tiên sử dụng **MyMemory API** (Miễn phí, nhanh) cho các bản dịch đơn giản.
+    - Tự động chuyển sang **Gemini AI** (Thông minh hơn) nếu MyMemory thất bại hoặc khi người dùng yêu cầu dịch nâng cao.
 
-### Method 1: Using the Popup
+### ✍️ 2. Kiểm tra & Sửa lỗi Ngữ pháp (Grammar Check)
 
-1. Select text on any webpage
-2. Click the AI Translator extension icon
-3. The selected text will appear in the source field
-4. Choose your target language
-5. Click "Translate" or press Ctrl+Enter
+- **Phát hiện lỗi sai**: Nhận diện lỗi ngữ pháp, chính tả, dấu câu.
+- **Giải thích & Sửa lỗi**: Hiển thị phiên bản đã sửa và làm nổi bật các thay đổi (Diff view) để người dùng dễ dàng so sánh.
+- **Cơ chế Fallback**: Ưu tiên **LanguageTool** (Nhanh) và dự phòng bằng **Gemini AI** (Sâu hơn).
 
-### Method 2: Manual Input
+### 🖼️ 3. Trích xuất Text từ Hình ảnh (OCR)
 
-1. Click the extension icon
-2. Type or paste text into the source field
-3. Select your target language
-4. Click "Translate"
+- Sử dụng **Gemini Vision API** để nhận diện và trích xuất văn bản từ hình ảnh trên web.
+- Giữ nguyên định dạng dòng và cấu trúc văn bản gốc.
 
-### Features
+### ⚡ 4. Trải nghiệm Người dùng (UX/UI)
 
-- **Auto-detect source language**: Gemini automatically detects the source text language
-- **Copy translation**: Click "Copy" to copy the translation to clipboard
-- **Clear text**: Click "Clear" to reset both fields
-- **Language preference**: Your last selected target language is saved
+- **Floating Icon**: Biểu tượng dịch nhanh xuất hiện ngay khi bôi đen văn bản (tương tự Medium/Notion).
+- **Phím tắt (Shortcuts)**:
+    - `Alt+T`: Dịch văn bản đã chọn.
+    - `Alt+G`: Kiểm tra ngữ pháp.
+- **Giao diện hiện đại**: Thiết kế clean, animations mượt mà, hỗ trợ Dark/Light mode theo hệ thống.
 
-## File Structure
+---
 
-```
-extension_translate/
-├── manifest.json          # Extension configuration
-├── popup.html             # Popup interface
-├── popup.css              # Popup styling
-├── popup.js               # Popup logic and API calls
-├── content.js             # Content script for text selection
-├── background.js          # Background service worker
-├── icons/                 # Extension icons
-│   ├── icon16.png
-│   ├── icon48.png
-│   └── icon128.png
-└── README.md              # This file
-```
+## 3. Kiến trúc Kỹ thuật (Technical Architecture)
 
-## API Usage
+Dự án được xây dựng theo tiêu chuẩn **Chrome Extension Manifest V3**, đảm bảo hiệu năng và bảo mật.
 
-This extension uses Google's Gemini API. Standard pricing applies:
-- Free tier: 15 requests per minute
-- Paid tier: Based on usage
+### Sơ đồ Luồng dữ liệu (Data Flow)
 
-Check [Google AI Pricing](https://ai.google.dev/pricing) for details.
+1. **User Action**: Người dùng bôi đen văn bản trên trang web -> `content.js` kích hoạt.
+2. **UI Rendering**: `content.js` hiển thị Floating Icon hoặc Popup ngay tại vị trí con trỏ.
+3. **Request Handling**: Khi người dùng bấm nút, `content.js` gửi message tới `background.js`.
+4. **API Management (`background.js`)**:
+    - Kiểm tra Settings (API Key, Language).
+    - Điều phối gọi API (MyMemory / LanguageTool / Gemini).
+    - Xử lý lỗi và Fallback.
+5. **Response**: Kết quả trả về `content.js` để hiển thị lên Popup.
 
-## Privacy
+### Các Thành phần Chính (Components)
 
-- Your API key is stored locally in your browser
-- Translations are sent directly to Google's servers
-- No data is collected or sent to third parties
+- **Manifest.json**: Cấu hình quyền hạn (`activeTab`, `storage`, `scripting`), khai báo background worker và content scripts.
+- **Background Service Worker (`background.js`)**: "Bộ não" trung tâm, xử lý các tác vụ bất đồng bộ, gọi API bên ngoài để tránh lộ API Key và bypass CORS.
+- **Content Script (`content.js`)**: Cầu nối tương tác với trang web hiện tại (DOM manipulation), xử lý sự kiện chuột/phím, hiển thị giao diện người dùng (Shadow DOM hoặc Inject trực tiếp).
+- **Settings & Storage**: Quản lý API Key người dùng và các tùy chọn cá nhân hóa lưu trong `chrome.storage.local`.
 
-## Troubleshooting
+---
 
-### API Key Issues
+## 4. Ngăn xếp Công nghệ (Tech Stack)
 
-- Make sure your API key is valid
-- Check that you have enabled the Gemini API
-- Verify you haven't exceeded your quota
+- **Core**: HTML5, CSS3, Vanilla JavaScript (ES6+). Không sử dụng Framework nặng nề để tối ưu tốc độ.
+- **Platform**: Chrome Extension API (Manifest V3).
+- **AI Models**: Google Gemini 1.5 Flash / Pro (thông qua API).
+- **External Services**: MyMemory API (Translation), LanguageTool API (Grammar).
 
-### Translation Errors
+---
 
-- Check your internet connection
-- Verify the API key is correct
-- Try shorter text if getting timeout errors
+## 5. Hướng dẫn Cài đặt & Sử dụng (Installation & Usage)
 
-### Extension Not Loading
+### Cài đặt
 
-- Make sure Developer Mode is enabled
-- Check that all files are in the correct location
-- Look for errors in chrome://extensions/
+1. Clone repository về máy.
+2. Mở Chrome, truy cập `chrome://extensions/`.
+3. Bật **Developer mode**.
+4. Chọn **Load unpacked** -> trỏ đến thư mục dự án.
 
-## Development
+### Cấu hình
 
-To modify or extend this extension:
+1. Click vào icon Extension trên thanh công cụ -> Mở Settings.
+2. Nhập **Google Gemini API Key** (Lấy từ Google AI Studio).
+3. Chọn ngôn ngữ đích mặc định (ví dụ: Vietnamese).
 
-1. Edit the source files
-2. Go to `chrome://extensions/`
-3. Click the refresh icon on your extension card
+### Sử dụng
 
-## Future Enhancements
+- **Dịch nhanh**: Bôi đen text -> Bấm vào icon xuất hiện -> Xem bản dịch.
+- **Check ngữ pháp**: Bôi đen text -> Chuột phải chọn "Check Grammar" hoặc bấm phím tắt `Alt+G`.
 
-Possible features to add:
-- Context menu integration
-- Keyboard shortcut for quick translation
-- Translation history
-- Text-to-speech for translations
-- Offline mode with cached translations
+---
 
-## License
+## 6. Tiềm năng & Hướng phát triển (Future Roadmap)
 
-This is a personal project for educational purposes.
+- **History Sync**: Đồng bộ lịch sử dịch giữa các thiết bị.
+- **Audio Mode**: Nghe phát âm văn bản gốc và bản dịch (Text-to-Speech).
+- **Document Translate**: Dịch toàn bộ file PDF/Docx.
+- **Custom Prompts**: Cho phép người dùng tùy chỉnh prompt gửi tới AI (ví dụ: "Dịch theo phong cách hài hước").
 
-## Credits
+---
 
-Built with:
-- Google Gemini API
-- Chrome Extension Manifest V3
-- Vanilla JavaScript (no frameworks)
+## 7. Giấy phép (License)
+
+Dự án mã nguồn mở (Open Source) phục vụ mục đích học tập và nghiên cứu.
