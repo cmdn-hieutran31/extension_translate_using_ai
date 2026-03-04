@@ -52,7 +52,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         sourceText.value = savedSourceText;
         // Restore translation if available
         if (savedTranslation) {
-            translationResult.innerHTML = savedTranslation;
+            if (typeof savedTranslation === 'object') {
+                // If it's an old malformed object for some reason
+                translationResult.innerHTML =
+                    '<span class="placeholder" style="color: #ef4444;">Please re-translate to clear old cache</span>';
+                chrome.storage.local.remove(['savedTranslation']);
+            } else {
+                translationResult.innerHTML = savedTranslation;
+            }
         }
     }
 
@@ -75,7 +82,7 @@ targetLang.addEventListener('change', async () => {
                 if (tab.url && tab.url.includes('settings.html')) {
                     chrome.tabs
                         .sendMessage(tab.id, { action: 'reloadSettings' })
-                        .catch(() => { });
+                        .catch(() => {});
                 }
             });
         });
@@ -181,24 +188,57 @@ translateBtn.addEventListener('click', async () => {
         // Note: apiKey might be empty, which is fine for MyMemory
         const response = await translateText(text, targetLang.value, apiKey);
 
-        // Handle response
-        let translatedText = '';
+        let htmlContent = '';
         let source = '';
 
         if (typeof response === 'object' && response.data) {
-            translatedText = response.data;
             source = response.source;
+            const resData = response.data;
+
+            if (typeof resData === 'object' && resData.dictionary) {
+                // Render Dictionary UI for popup window
+                htmlContent = `<div style="font-weight: 500; font-size: 15px; margin-bottom: 8px;">✨ ${resData.translation}</div>`;
+
+                if (resData.dictionary.length > 0) {
+                    htmlContent += `<div class="ai-dict-container" style="margin-top: 12px; border-top: 1px solid #e5e7eb; padding-top: 12px; display: flex; flex-direction: column; gap: 12px;">`;
+                    resData.dictionary.forEach((group) => {
+                        htmlContent += `
+                             <div class="ai-dict-group" style="display: flex; flex-direction: column; gap: 6px;">
+                                 <div class="ai-dict-type" style="font-size: 12px; color: #6b7280; font-weight: 500; text-transform: capitalize;">${group.type}</div>
+                         `;
+                        group.meanings.forEach((item) => {
+                            const relatedText =
+                                item.related && item.related.length > 0
+                                    ? `<div class="ai-dict-related" style="color: #4b5563; padding-top: 2px;">- ${item.related.join(', ')}</div>`
+                                    : '';
+                            htmlContent += `
+                                 <div class="ai-dict-item" style="display: flex; align-items: flex-start; gap: 8px; font-size: 13px; line-height: 1.4;">
+                                     <div class="ai-dict-badge" style="background: #111827; color: white; padding: 2px 8px; border-radius: 4px; font-weight: 600; white-space: nowrap;">${item.word}</div>
+                                     ${relatedText}
+                                 </div>
+                             `;
+                        });
+                        htmlContent += `</div>`;
+                    });
+                    htmlContent += `</div>`;
+                }
+            } else {
+                htmlContent = String(resData).replace(/\n/g, '<br>');
+            }
         } else {
-            translatedText = response;
+            htmlContent = String(response).replace(/\n/g, '<br>');
         }
 
-        translationResult.textContent = translatedText;
+        translationResult.innerHTML = htmlContent;
 
         if (source === 'mymemory') {
             translationSource.textContent = 'Translated by MyMemory (Free API)';
             retranslateBtn.style.display = 'inline';
             // Track MyMemory usage
             await trackMyMemoryUsage(text.length);
+        } else if (source === 'google_dict') {
+            translationSource.textContent = 'Translated by Google Dictionary';
+            retranslateBtn.style.display = 'inline';
         } else {
             translationSource.textContent = 'Translated by Gemini AI';
             retranslateBtn.style.display = 'none'; // Already AI
@@ -210,7 +250,7 @@ translateBtn.addEventListener('click', async () => {
 
         // Save translation to storage
         await chrome.storage.local.set({
-            savedTranslation: translatedText,
+            savedTranslation: htmlContent,
             savedSourceText: text,
         });
     } catch (error) {
@@ -223,13 +263,14 @@ translateBtn.addEventListener('click', async () => {
 });
 
 // Translate text using Gemini API
-async function translateText(text, targetLang, apiKey) {
+async function translateText(text, targetLang, apiKey, forceAI = false) {
     return new Promise((resolve, reject) => {
         chrome.runtime.sendMessage(
             {
                 action: 'callTranslateAPI',
                 text: text,
                 targetLang: targetLang,
+                forceAI: forceAI,
             },
             async (response) => {
                 if (chrome.runtime.lastError) {
@@ -242,7 +283,7 @@ async function translateText(text, targetLang, apiKey) {
                     // Original code: await trackUsage('aiTranslateCount', 'aiTranslateLastDate');
                     // Let's keep tracking here for consistency with existing storage logic
                     await trackUsage('aiTranslateCount', 'aiTranslateLastDate');
-                    resolve(response.data);
+                    resolve(response);
                 } else {
                     reject(new Error(response ? response.error : 'Unknown error'));
                 }
@@ -302,14 +343,48 @@ retranslateBtn.addEventListener('click', async () => {
         // Force AI translation
         const response = await translateText(text, targetLang.value, apiKey, true);
 
-        let translatedText = '';
+        let htmlContent = '';
+        let translatedTextStr = '';
+
         if (typeof response === 'object' && response.data) {
-            translatedText = response.data;
+            const resData = response.data;
+            if (typeof resData === 'object' && resData.dictionary) {
+                htmlContent = `<div style="font-weight: 500; font-size: 15px; margin-bottom: 8px;">✨ ${resData.translation}</div>`;
+                translatedTextStr = resData.translation;
+
+                if (resData.dictionary.length > 0) {
+                    htmlContent += `<div class="ai-dict-container" style="margin-top: 12px; border-top: 1px solid #e5e7eb; padding-top: 12px; display: flex; flex-direction: column; gap: 12px;">`;
+                    resData.dictionary.forEach((group) => {
+                        htmlContent += `
+                              <div class="ai-dict-group" style="display: flex; flex-direction: column; gap: 6px;">
+                                  <div class="ai-dict-type" style="font-size: 12px; color: #6b7280; font-weight: 500; text-transform: capitalize;">${group.type}</div>
+                          `;
+                        group.meanings.forEach((item) => {
+                            const relatedText =
+                                item.related && item.related.length > 0
+                                    ? `<div class="ai-dict-related" style="color: #4b5563; padding-top: 2px;">- ${item.related.join(', ')}</div>`
+                                    : '';
+                            htmlContent += `
+                                  <div class="ai-dict-item" style="display: flex; align-items: flex-start; gap: 8px; font-size: 13px; line-height: 1.4;">
+                                      <div class="ai-dict-badge" style="background: #111827; color: white; padding: 2px 8px; border-radius: 4px; font-weight: 600; white-space: nowrap;">${item.word}</div>
+                                      ${relatedText}
+                                  </div>
+                              `;
+                        });
+                        htmlContent += `</div>`;
+                    });
+                    htmlContent += `</div>`;
+                }
+            } else {
+                htmlContent = String(resData).replace(/\n/g, '<br>');
+                translatedTextStr = String(resData);
+            }
         } else {
-            translatedText = response;
+            htmlContent = String(response).replace(/\n/g, '<br>');
+            translatedTextStr = String(response);
         }
 
-        translationResult.textContent = translatedText;
+        translationResult.innerHTML = htmlContent;
         translationSource.textContent = 'Translated by Gemini AI';
         retranslateBtn.textContent = '✨ Translate with AI';
         retranslateBtn.style.display = 'none'; // Done
@@ -321,7 +396,7 @@ retranslateBtn.addEventListener('click', async () => {
 
         // Save translation to storage
         await chrome.storage.local.set({
-            savedTranslation: translatedText,
+            savedTranslation: htmlContent, // Save the full HTML for restoration
             savedSourceText: text,
         });
     } catch (error) {

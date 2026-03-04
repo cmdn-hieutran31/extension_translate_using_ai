@@ -309,12 +309,31 @@ body {
 
 .result-text {
   min-height: 100px;
+  max-height: 350px;
+  overflow-y: auto;
   padding: 12px;
   border: 1px solid #d1d5db;
   border-radius: 8px;
   font-size: 13px;
   line-height: 1.6;
   background: white;
+}
+
+.result-text::-webkit-scrollbar {
+  width: 6px;
+}
+
+.result-text::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.result-text::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 3px;
+}
+
+.result-text::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
 }
 
 .result-text .placeholder {

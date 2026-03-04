@@ -142,6 +142,22 @@ function createTranslateIcon() {
         line-height: 1.5 !important;
         color: #1f2937 !important;
         min-height: 60px !important;
+        max-height: 300px !important;
+        overflow-y: auto !important;
+        white-space: pre-wrap !important;
+      }
+      .ai-translator-popup-result::-webkit-scrollbar {
+        width: 6px !important;
+      }
+      .ai-translator-popup-result::-webkit-scrollbar-track {
+        background: transparent !important;
+      }
+      .ai-translator-popup-result::-webkit-scrollbar-thumb {
+        background: #d1d5db !important;
+        border-radius: 3px !important;
+      }
+      .ai-translator-popup-result::-webkit-scrollbar-thumb:hover {
+        background: #9ca3af !important;
       }
       .ai-translator-popup-actions {
         display: flex !important;
@@ -161,6 +177,44 @@ function createTranslateIcon() {
       }
       .ai-translator-popup-btn:hover {
         background: #5568d3 !important;
+      }
+      .ai-dict-container {
+        margin-top: 12px !important;
+        border-top: 1px solid #e5e7eb !important;
+        padding-top: 12px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 12px !important;
+      }
+      .ai-dict-group {
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 6px !important;
+      }
+      .ai-dict-type {
+        font-size: 12px !important;
+        color: #6b7280 !important;
+        font-weight: 500 !important;
+        text-transform: capitalize !important;
+      }
+      .ai-dict-item {
+        display: flex !important;
+        align-items: flex-start !important;
+        gap: 8px !important;
+        font-size: 13px !important;
+        line-height: 1.4 !important;
+      }
+      .ai-dict-badge {
+        background: #111827 !important;
+        color: white !important;
+        padding: 2px 8px !important;
+        border-radius: 4px !important;
+        font-weight: 600 !important;
+        white-space: nowrap !important;
+      }
+      .ai-dict-related {
+        color: #4b5563 !important;
+        padding-top: 2px !important;
       }
     `;
         document.head.appendChild(style);
@@ -390,20 +444,49 @@ async function showTranslatePopup() {
             apiKey
         );
 
-        // Handle response object structure { success, data, source }
-        // Or if it's just string (fallback support if background sends raw string, but current logic sends object)
-
-        let translatedText = '';
+        let htmlContent = '';
         let source = '';
 
         if (typeof translationResponse === 'object' && translationResponse.data) {
-            translatedText = translationResponse.data;
             source = translationResponse.source;
+            const resData = translationResponse.data;
+
+            if (typeof resData === 'object' && resData.dictionary) {
+                // Render Dictionary UI
+                htmlContent = `<div style="font-weight: 500; font-size: 15px; margin-bottom: 8px;">✨ ${resData.translation}</div>`;
+
+                if (resData.dictionary.length > 0) {
+                    htmlContent += `<div class="ai-dict-container">`;
+                    resData.dictionary.forEach((group) => {
+                        htmlContent += `
+                             <div class="ai-dict-group">
+                                 <div class="ai-dict-type">${group.type}</div>
+                         `;
+                        group.meanings.forEach((item) => {
+                            const relatedText =
+                                item.related && item.related.length > 0
+                                    ? `<div class="ai-dict-related">- ${item.related.join(', ')}</div>`
+                                    : '';
+                            htmlContent += `
+                                 <div class="ai-dict-item">
+                                     <div class="ai-dict-badge">${item.word}</div>
+                                     ${relatedText}
+                                 </div>
+                             `;
+                        });
+                        htmlContent += `</div>`;
+                    });
+                    htmlContent += `</div>`;
+                }
+            } else {
+                // Fallback normal string
+                htmlContent = String(resData).replace(/\n/g, '<br>');
+            }
         } else {
-            translatedText = translationResponse;
+            htmlContent = String(translationResponse).replace(/\n/g, '<br>');
         }
 
-        resultDiv.textContent = translatedText;
+        resultDiv.innerHTML = htmlContent;
 
         // Show AI button if source is mymemory
         if (source === 'mymemory') {
@@ -861,23 +944,25 @@ function showGrammarDiff(original, corrected, source = 'languagetool') {
         });
 
     if (!isAI) {
-        document.getElementById('ai-deep-check').addEventListener('click', async () => {
-            const btn = document.getElementById('ai-deep-check');
-            btn.textContent = 'Checking with AI...';
-            btn.disabled = true;
+        document
+            .getElementById('ai-deep-check')
+            .addEventListener('click', async () => {
+                const btn = document.getElementById('ai-deep-check');
+                btn.textContent = 'Checking with AI...';
+                btn.disabled = true;
 
-            try {
-                // Check if API key exists first? No, let checkGrammar handle error
-                const result = await checkGrammar(original, true); // forceAI = true
+                try {
+                    // Check if API key exists first? No, let checkGrammar handle error
+                    const result = await checkGrammar(original, true); // forceAI = true
 
-                // Remove current dialog and show new one
-                dialog.remove();
-                showGrammarDiff(original, result.data, result.source);
-            } catch (error) {
-                btn.textContent = 'Failed: ' + error.message;
-                btn.style.background = '#ef4444';
-            }
-        });
+                    // Remove current dialog and show new one
+                    dialog.remove();
+                    showGrammarDiff(original, result.data, result.source);
+                } catch (error) {
+                    btn.textContent = 'Failed: ' + error.message;
+                    btn.style.background = '#ef4444';
+                }
+            });
     }
 }
 

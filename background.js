@@ -128,6 +128,108 @@ async function translateWithMyMemory(text, targetLang) {
     }
 }
 
+// Helper: Check Dictionary using Google Translate API (Free endpoint)
+async function checkDictionaryWithGoogle(text, targetLang) {
+    const langMap = {
+        en: 'en',
+        vi: 'vi',
+        es: 'es',
+        fr: 'fr',
+        de: 'de',
+        it: 'it',
+        pt: 'pt',
+        ru: 'ru',
+        ja: 'ja',
+        ko: 'ko',
+        zh: 'zh',
+        ar: 'ar',
+        hi: 'hi',
+    };
+    const target = langMap[targetLang] || 'vi';
+
+    try {
+        const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${target}&dt=t&dt=bd&q=${encodeURIComponent(text)}`;
+        const response = await fetch(url);
+
+        if (!response.ok) {
+            if (response.status === 429) {
+                throw new Error(
+                    'Google Dictionary API rate limit reached. Fallback triggered.'
+                );
+            }
+            throw new Error(`Google API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        // data[0] contains direct translation, data[1] contains dictionary entries
+        let translation = '';
+        let dictionary = [];
+
+        // Add direct translation as the primary meaning
+        if (data[0] && data[0][0] && data[0][0][0]) {
+            translation = data[0][0][0];
+        } else {
+            throw new Error('No primary translation found from Google');
+        }
+
+        // Add dictionary details if available
+        if (data[1] && Array.isArray(data[1])) {
+            data[1].forEach((partOfSpeech) => {
+                const type = partOfSpeech[0]; // e.g., "noun", "verb"
+                const meanings = partOfSpeech[1] || []; // e.g., ["thăng chức", "quảng bá"]
+
+                // Detailed meanings list for extra UX
+                const detailedMeanings = [];
+                if (partOfSpeech[2] && Array.isArray(partOfSpeech[2])) {
+                    partOfSpeech[2].forEach((detail) => {
+                        if (detail[0] && detail[1]) {
+                            detailedMeanings.push({
+                                word: detail[0],
+                                related: detail[1],
+                            });
+                        }
+                    });
+                }
+
+                // Map English parts of speech to Vietnamese for better UX
+                const typeMap = {
+                    noun: 'Danh từ',
+                    verb: 'Động từ',
+                    adjective: 'Tính từ',
+                    adverb: 'Trạng từ',
+                    pronoun: 'Đại từ',
+                    preposition: 'Giới từ',
+                    conjunction: 'Liên từ',
+                    interjection: 'Thán từ',
+                };
+                const displayType = typeMap[type] || type;
+
+                if (detailedMeanings.length > 0) {
+                    dictionary.push({
+                        type: displayType,
+                        meanings: detailedMeanings,
+                    });
+                } else if (meanings.length > 0) {
+                    dictionary.push({
+                        type: displayType,
+                        meanings: meanings.map((m) => ({ word: m, related: [] })),
+                    });
+                }
+            });
+        }
+
+        return {
+            success: true,
+            data: { translation, dictionary },
+            source: 'google_dict',
+        };
+    } catch (error) {
+        console.error('[AI Translator] Google Dict Error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
 // Helper function to check grammar using Gemini API
 async function checkGrammarWithGemini(text, apiKey) {
     const prompt = `You are a professional grammar checker. Your task is to:
@@ -446,7 +548,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 if (tab.url && tab.url.includes('settings.html')) {
                     chrome.tabs
                         .sendMessage(tab.id, { action: 'updateUsageStats' })
-                        .catch(() => { });
+                        .catch(() => {});
                 }
             });
         });
@@ -478,7 +580,30 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                     result.source = 'ai'; // Ensure source is marked
                     sendResponse(result);
                 } else {
-                    // Try MyMemory first
+                    // Strategy:
+                    // 1. If text is short (<= 3 words), try Google Dictionary API first
+                    // 2. If Google fails or text is long, try MyMemory
+                    // 3. If MyMemory fails, try Gemini API (Fallback)
+
+                    const wordsCount = request.text.trim().split(/\s+/).length;
+
+                    if (wordsCount <= 3) {
+                        const googleResult = await checkDictionaryWithGoogle(
+                            request.text,
+                            request.targetLang
+                        );
+                        if (googleResult.success) {
+                            sendResponse(googleResult);
+                            return; // Stop here if dictionary succeeds
+                        } else {
+                            console.log(
+                                'Google Dictionary failed, falling back to MyMemory/Gemini:',
+                                googleResult.error
+                            );
+                        }
+                    }
+
+                    // Try MyMemory (either text is long, or Google Dict failed)
                     const mmResult = await translateWithMyMemory(
                         request.text,
                         request.targetLang
@@ -526,7 +651,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 // If forceAI is true, skip LanguageTool and go straight to Gemini
                 if (!request.forceAI) {
                     // Try LanguageTool first
-                    const ltResult = await checkGrammarWithLanguageTool(request.text);
+                    const ltResult = await checkGrammarWithLanguageTool(
+                        request.text
+                    );
 
                     if (ltResult.success) {
                         sendResponse(ltResult);
@@ -544,7 +671,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                     sendResponse({
                         success: false,
                         error:
-                            (request.forceAI ? 'AI Deep Check' : 'LanguageTool fallback') + ' requires an API Key.',
+                            (request.forceAI
+                                ? 'AI Deep Check'
+                                : 'LanguageTool fallback') + ' requires an API Key.',
                     });
                     return;
                 }
