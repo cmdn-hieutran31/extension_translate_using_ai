@@ -9,6 +9,8 @@ const translationSource = document.getElementById('translationSource');
 const retranslateBtn = document.getElementById('retranslateBtn');
 const clearBtn = document.getElementById('clearBtn');
 const copyBtn = document.getElementById('copyBtn');
+const speakSourceBtn = document.getElementById('speakSourceBtn');
+const speakResultBtn = document.getElementById('speakResultBtn');
 const grammarBtn = document.getElementById('grammarBtn');
 const grammarSection = document.getElementById('grammarSection');
 const grammarResult = document.getElementById('grammarResult');
@@ -48,8 +50,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Use saved text if no text is currently selected, otherwise use selected text
     if (selectedText) {
         sourceText.value = selectedText;
+        if (selectedText.trim()) speakSourceBtn.style.display = 'inline-flex';
     } else if (savedSourceText) {
         sourceText.value = savedSourceText;
+        if (savedSourceText.trim()) speakSourceBtn.style.display = 'inline-flex';
         // Restore translation if available
         if (savedTranslation) {
             if (typeof savedTranslation === 'object') {
@@ -59,6 +63,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 chrome.storage.local.remove(['savedTranslation']);
             } else {
                 translationResult.innerHTML = savedTranslation;
+                speakResultBtn.style.display = 'inline-flex';
             }
         }
     }
@@ -246,6 +251,7 @@ translateBtn.addEventListener('click', async () => {
             await trackUsage('aiTranslateCount', 'aiTranslateLastDate');
         }
 
+        speakResultBtn.style.display = 'inline-flex';
         showStatus('Translation complete', 'success');
 
         // Save translation to storage
@@ -389,6 +395,7 @@ retranslateBtn.addEventListener('click', async () => {
         retranslateBtn.textContent = '✨ Translate with AI';
         retranslateBtn.style.display = 'none'; // Done
         retranslateBtn.disabled = false;
+        speakResultBtn.style.display = 'inline-flex';
         showStatus('AI Translation complete', 'success');
 
         // Track AI usage
@@ -462,6 +469,12 @@ clearBtn.addEventListener('click', async () => {
     grammarResult.innerHTML =
         '<span class="placeholder">Grammar check results will appear here...</span>';
     grammarSection.style.display = 'none';
+    speakSourceBtn.style.display = 'none';
+    speakResultBtn.style.display = 'none';
+
+    // Stop speaking if playing
+    if (window.speechSynthesis) window.speechSynthesis.cancel();
+
     sourceText.focus();
 
     // Also clear image if present
@@ -576,6 +589,7 @@ sourceText.addEventListener('keydown', (e) => {
 // Debounce function to save source text as user types
 let saveTimeout;
 sourceText.addEventListener('input', () => {
+    speakSourceBtn.style.display = sourceText.value.trim() ? 'inline-flex' : 'none';
     clearTimeout(saveTimeout);
     saveTimeout = setTimeout(async () => {
         const text = sourceText.value;
@@ -752,7 +766,87 @@ useExtractedBtn.addEventListener('click', () => {
     const text = extractedText.textContent;
     if (text && !extractedText.querySelector('.placeholder')) {
         sourceText.value = text;
+        speakSourceBtn.style.display = 'inline-flex';
         sourceText.focus();
         showStatus('Text copied to source', 'success');
+    }
+});
+
+// ========== Text to Speech (TTS) ==========
+function speakText(text, lang, buttonEl) {
+    if (!text || !window.speechSynthesis) return;
+
+    // If clicking the button while it's playing, it acts as a toggle to stop
+    if (buttonEl.classList.contains('playing')) {
+        window.speechSynthesis.cancel();
+        buttonEl.classList.remove('playing');
+        return;
+    }
+
+    // Stop current speech if any
+    window.speechSynthesis.cancel();
+
+    // Clean text: remove HTML tags if any
+    let cleanText = text.replace(/<[^>]*>?/gm, '');
+
+    // Map to standard locales
+    const langMap = {
+        en: 'en-US',
+        vi: 'vi-VN',
+        es: 'es-ES',
+        fr: 'fr-FR',
+        de: 'de-DE',
+        it: 'it-IT',
+        pt: 'pt-PT',
+        ru: 'ru-RU',
+        ja: 'ja-JP',
+        ko: 'ko-KR',
+        zh: 'zh-CN',
+        ar: 'ar-SA',
+        hi: 'hi-IN',
+    };
+
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.lang = langMap[lang] || 'en-US';
+
+    utterance.onstart = () => {
+        // Remove playing class from all buttons
+        speakSourceBtn.classList.remove('playing');
+        speakResultBtn.classList.remove('playing');
+        buttonEl.classList.add('playing');
+    };
+
+    utterance.onend = () => {
+        buttonEl.classList.remove('playing');
+    };
+
+    utterance.onerror = () => {
+        buttonEl.classList.remove('playing');
+        showStatus('Lỗi phát âm', 'error');
+    };
+
+    window.speechSynthesis.speak(utterance);
+}
+
+speakSourceBtn.addEventListener('click', () => {
+    const text = sourceText.value.trim();
+    if (text) {
+        speakText(text, 'en', speakSourceBtn);
+    }
+});
+
+speakResultBtn.addEventListener('click', () => {
+    let textToSpeak = '';
+    const dictHeader = translationResult.querySelector(
+        'div[style*="font-weight: 500"]'
+    );
+    if (dictHeader) {
+        textToSpeak = dictHeader.textContent.replace('✨ ', '').trim();
+    } else {
+        textToSpeak = translationResult.innerText;
+    }
+
+    if (textToSpeak && !translationResult.querySelector('.placeholder')) {
+        speakText(textToSpeak, targetLang.value, speakResultBtn);
     }
 });

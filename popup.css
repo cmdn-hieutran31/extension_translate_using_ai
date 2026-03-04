@@ -472,3 +472,35 @@ body {
   margin-top: 6px;
   font-style: italic;
 }
+
+/* Audio Action Icon */
+.action-icon {
+  color: #6b7280;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s, transform 0.1s;
+}
+
+.action-icon:hover {
+  color: #667eea;
+  transform: scale(1.1);
+}
+
+.action-icon.playing {
+  color: #667eea;
+  animation: pulse 1s infinite alternate;
+}
+
+@keyframes pulse {
+  from {
+    opacity: 1;
+    text-shadow: 0 0 5px rgba(102, 126, 234, 0.5);
+  }
+
+  to {
+    opacity: 0.6;
+    text-shadow: 0 0 10px rgba(102, 126, 234, 0);
+  }
+}

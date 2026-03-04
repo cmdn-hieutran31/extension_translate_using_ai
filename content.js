@@ -131,6 +131,32 @@ function createTranslateIcon() {
       .ai-translator-popup-close:hover {
         background: rgba(255, 255, 255, 0.2) !important;
       }
+      .ai-translator-popup-speak-header {
+        background: none !important;
+        border: none !important;
+        color: white !important;
+        font-size: 16px !important;
+        cursor: pointer !important;
+        padding: 0 !important;
+        width: 24px !important;
+        height: 24px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        border-radius: 4px !important;
+        transition: all 0.2s !important;
+      }
+      .ai-translator-popup-speak-header:hover {
+        background: rgba(255, 255, 255, 0.2) !important;
+      }
+      .ai-translator-popup-speak-header.playing {
+        color: #fcd34d !important;
+        animation: ai-pulse-header 1s infinite alternate !important;
+      }
+      @keyframes ai-pulse-header {
+        from { opacity: 1; text-shadow: 0 0 5px rgba(252, 211, 77, 0.5); }
+        to { opacity: 0.6; text-shadow: 0 0 10px rgba(252, 211, 77, 0); }
+      }
       .ai-translator-popup-content {
         padding: 16px !important;
       }
@@ -290,7 +316,12 @@ function createTranslatePopup() {
     translatePopup.innerHTML = `
     <div class="ai-translator-popup-header">
       <span class="ai-translator-popup-title">AI Translator</span>
-      <button class="ai-translator-popup-close" id="ai-translator-popup-close">×</button>
+      <div style="display: flex; gap: 8px; align-items: center;">
+        <button class="ai-translator-popup-speak-header" id="ai-translator-popup-speak" title="Listen" style="display: none;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>
+        </button>
+        <button class="ai-translator-popup-close" id="ai-translator-popup-close">×</button>
+      </div>
     </div>
     <div class="ai-translator-popup-content">
       <div class="ai-translator-popup-result" id="ai-translator-popup-result">Translation will appear here...</div>
@@ -310,6 +341,9 @@ function createTranslatePopup() {
     document
         .getElementById('ai-translator-popup-copy')
         .addEventListener('click', copyTranslation);
+    document
+        .getElementById('ai-translator-popup-speak')
+        .addEventListener('click', speakPopupText);
 
     // AI Translate button listener
     document
@@ -425,12 +459,16 @@ async function showTranslatePopup() {
 
     const resultDiv = document.getElementById('ai-translator-popup-result');
     const aiBtn = document.getElementById('ai-translator-popup-ai');
+    const speakBtn = document.getElementById('ai-translator-popup-speak');
 
     // Reset UI state
     resultDiv.textContent = 'Translating...';
     aiBtn.style.display = 'none';
     aiBtn.disabled = false;
     aiBtn.textContent = '✨ Translate with AI';
+    speakBtn.style.setProperty('display', 'none', 'important');
+    speakBtn.classList.remove('playing');
+    if (window.speechSynthesis) window.speechSynthesis.cancel();
 
     try {
         const { apiKey, savedTargetLang } = await chrome.storage.local.get([
@@ -487,6 +525,7 @@ async function showTranslatePopup() {
         }
 
         resultDiv.innerHTML = htmlContent;
+        speakBtn.style.setProperty('display', 'flex', 'important');
 
         // Show AI button if source is mymemory
         if (source === 'mymemory') {
@@ -511,6 +550,11 @@ async function showTranslatePopup() {
 function hideTranslatePopup() {
     if (translatePopup) {
         translatePopup.style.setProperty('display', 'none', 'important');
+        if (window.speechSynthesis) window.speechSynthesis.cancel();
+        const speakBtn = document.getElementById('ai-translator-popup-speak');
+        if (speakBtn) {
+            speakBtn.classList.remove('playing');
+        }
     }
 }
 
@@ -531,6 +575,55 @@ async function copyTranslation() {
     } catch (error) {
         console.error('[AI Translator] Failed to copy:', error);
     }
+}
+
+function speakPopupText() {
+    const resultDiv = document.getElementById('ai-translator-popup-result');
+    const speakBtn = document.getElementById('ai-translator-popup-speak');
+
+    if (speakBtn.classList.contains('playing')) {
+        window.speechSynthesis.cancel();
+        speakBtn.classList.remove('playing');
+        return;
+    }
+
+    window.speechSynthesis.cancel();
+
+    // In content popup, we often translate FROM English (or auto) TO user target lang
+    // The user wants to hear the *original* text
+    let textToSpeak = lastSelectedText;
+
+    if (!textToSpeak) return;
+
+    chrome.storage.local.get(['savedTargetLang'], (data) => {
+        const targetLang = data.savedTargetLang || 'vi';
+        const cleanText = textToSpeak.replace(/<[^>]*>?/gm, '');
+
+        let lang = 'en-US'; // Default to English for source text
+        // We know target is usually Vietnamese, so source is likely English
+        // If target is English, source might be Vietnamese
+        if (targetLang === 'en') {
+            lang = 'vi-VN';
+        }
+
+        const utterance = new SpeechSynthesisUtterance(cleanText);
+        utterance.lang = lang;
+
+        utterance.onstart = () => {
+            speakBtn.classList.add('playing');
+        };
+
+        utterance.onend = () => {
+            speakBtn.classList.remove('playing');
+        };
+
+        utterance.onerror = () => {
+            speakBtn.classList.remove('playing');
+            showNotification('Lỗi', 'Không thể đọc văn bản này.');
+        };
+
+        window.speechSynthesis.speak(utterance);
+    });
 }
 
 // ========== TRANSLATION API ==========
