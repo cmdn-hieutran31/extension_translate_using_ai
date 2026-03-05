@@ -831,7 +831,17 @@ function speakText(text, lang, buttonEl) {
 speakSourceBtn.addEventListener('click', () => {
     const text = sourceText.value.trim();
     if (text) {
-        speakText(text, 'en', speakSourceBtn);
+        chrome.i18n.detectLanguage(text, (result) => {
+            let lang = 'en';
+            if (result && result.languages && result.languages.length > 0) {
+                lang = result.languages[0].language;
+            } else {
+                if (/[\uac00-\ud7a3]/.test(text)) lang = 'ko';
+                else if (/[\u3040-\u30ff]/.test(text)) lang = 'ja';
+                else if (/[\u4e00-\u9fff]/.test(text)) lang = 'zh';
+            }
+            speakText(text, lang, speakSourceBtn);
+        });
     }
 });
 

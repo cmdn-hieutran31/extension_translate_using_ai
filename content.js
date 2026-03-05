@@ -599,30 +599,52 @@ function speakPopupText() {
         const targetLang = data.savedTargetLang || 'vi';
         const cleanText = textToSpeak.replace(/<[^>]*>?/gm, '');
 
-        let lang = 'en-US'; // Default to English for source text
-        // We know target is usually Vietnamese, so source is likely English
-        // If target is English, source might be Vietnamese
-        if (targetLang === 'en') {
-            lang = 'vi-VN';
-        }
+        chrome.i18n.detectLanguage(cleanText, (result) => {
+            let lang = 'en-US';
 
-        const utterance = new SpeechSynthesisUtterance(cleanText);
-        utterance.lang = lang;
+            if (result && result.languages && result.languages.length > 0) {
+                const detected = result.languages[0].language;
+                const langMap = {
+                    en: 'en-US',
+                    vi: 'vi-VN',
+                    es: 'es-ES',
+                    fr: 'fr-FR',
+                    de: 'de-DE',
+                    it: 'it-IT',
+                    pt: 'pt-PT',
+                    ru: 'ru-RU',
+                    ja: 'ja-JP',
+                    ko: 'ko-KR',
+                    zh: 'zh-CN',
+                    ar: 'ar-SA',
+                    hi: 'hi-IN',
+                };
+                lang = langMap[detected] || detected;
+            } else {
+                if (/[\uac00-\ud7a3]/.test(cleanText)) lang = 'ko-KR';
+                else if (/[\u3040-\u30ff]/.test(cleanText)) lang = 'ja-JP';
+                else if (/[\u4e00-\u9fff]/.test(cleanText)) lang = 'zh-CN';
+                else if (targetLang === 'en') lang = 'vi-VN';
+            }
 
-        utterance.onstart = () => {
-            speakBtn.classList.add('playing');
-        };
+            const utterance = new SpeechSynthesisUtterance(cleanText);
+            utterance.lang = lang;
 
-        utterance.onend = () => {
-            speakBtn.classList.remove('playing');
-        };
+            utterance.onstart = () => {
+                speakBtn.classList.add('playing');
+            };
 
-        utterance.onerror = () => {
-            speakBtn.classList.remove('playing');
-            showNotification('Lỗi', 'Không thể đọc văn bản này.');
-        };
+            utterance.onend = () => {
+                speakBtn.classList.remove('playing');
+            };
 
-        window.speechSynthesis.speak(utterance);
+            utterance.onerror = () => {
+                speakBtn.classList.remove('playing');
+                showNotification('Lỗi', 'Không thể đọc văn bản này.');
+            };
+
+            window.speechSynthesis.speak(utterance);
+        });
     });
 }
 
