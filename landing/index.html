@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title data-en="AI Translator & Grammar Check – Smart Chrome Extension" data-ja="AI翻訳＆文法チェック – スマートChrome拡張機能">
+    AI Translator & Grammar Check – Smart Chrome Extension
+  </title>
+  <meta name="description"
+    data-en="Free Chrome extension powered by Google Gemini AI. Translate text, check grammar, and extract text from images – without leaving any webpage."
+    data-ja="Google Gemini AIを搭載した無料Chrome拡張機能。テキストの翻訳、文法チェック、画像からのテキスト抽出がどのWebページでも可能。"
+    content="Free Chrome extension powered by Google Gemini AI. Translate text, check grammar, and extract text from images – without leaving any webpage.">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ── Animated Background ──────────────────── -->
+<div class="bg-canvas">
+  <div class="blob blob-1"></div>
+  <div class="blob blob-2"></div>
+  <div class="blob blob-3"></div>
+  <div class="blob blob-4"></div>
+</div>
+
+<!-- ── Navbar ───────────────────────────────── -->
+<nav class="navbar glass">
+  <a href="#" class="nav-logo">
+    <div class="nav-logo-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M5 8l6 6M4 14l6-6 2-3M2 5h12M7 2h1M22 22l-5-10-5 10M14 18h6"/>
+      </svg>
+    </div>
+    <span class="nav-logo-text" data-en="AI Translator" data-ja="AI翻訳ツール">AI Translator</span>
+  </a>
+  <div class="nav-links">
+    <button class="lang-btn active" id="btn-en" onclick="setLang('en')" aria-label="Switch to English">EN</button>
+    <button class="lang-btn" id="btn-ja" onclick="setLang('ja')" aria-label="日本語に切り替え">日本語</button>
+    <a href="#install" class="nav-cta" data-en="Install Now" data-ja="インストール">Install Now</a>
+  </div>
+</nav>
+
+<!-- ── HERO ─────────────────────────────────── -->
+<section id="hero">
+  <div class="container">
+    <div class="hero-inner">
+      <div class="hero-copy">
+        <div class="hero-badge">
+          <div class="hero-badge-dot"></div>
+          <span data-en="Powered by Google Gemini AI" data-ja="Google Gemini AI搭載">Powered by Google Gemini AI</span>
+        </div>
+        <h1 class="hero-title">
+          <span data-en="Translate & Check Grammar" data-ja="翻訳＆文法チェックを">Translate & Check Grammar</span><br/>
+          <span class="gradient-text" data-en="Instantly Anywhere" data-ja="どこでも瞬時に">Instantly Anywhere</span>
+        </h1>
+        <p class="hero-desc" data-en="Highlight any text on any webpage, and let AI translate it or fix grammar errors – all in one click, without switching tabs." data-ja="あらゆるWebページでテキストを選択するだけで、AIが翻訳・文法修正を自動で実行。タブを切り替える必要ゼロ。">
+          Highlight any text on any webpage, and let AI translate it or fix grammar errors – all in one click, without switching tabs.
+        </p>
+        <div class="hero-actions">
+          <a href="#install" class="btn-primary" id="hero-install-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/>
+              <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            <span data-en="Install Extension" data-ja="拡張機能をインストール">Install Extension</span>
+          </a>
+          <a href="#features" class="btn-secondary">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="8" x2="12" y2="12"/>
+              <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            <span data-en="Learn More" data-ja="詳しく見る">Learn More</span>
+          </a>
+        </div>
+      </div>
+
+      <!-- Demo Card -->
+      <div class="hero-visual">
+        <div class="hero-card glass">
+          <div class="hero-card-badge" data-en="✓ Grammar Fixed" data-ja="✓ 文法修正済み">✓ Grammar Fixed</div>
+          <div class="hero-card-header">
+            <div class="hero-card-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 8l6 6M4 14l6-6 2-3M2 5h12M7 2h1M22 22l-5-10-5 10M14 18h6"/>
+              </svg>
+            </div>
+            <div>
+              <div class="hero-card-title" data-en="AI Translator" data-ja="AI翻訳アシスタント">AI Translator</div>
+              <div class="hero-card-subtitle" data-en="Gemini 1.5 Flash Active" data-ja="Gemini 1.5 Flash 稼働中">Gemini 1.5 Flash Active</div>
+            </div>
+          </div>
+          <div class="hero-card-input" data-en="Selected text: &quot;I has been working here for 3 year...&quot;" data-ja="選択テキスト：「私わ3年間ここで働いている…」">
+            Selected text: "I has been working here for 3 year..."
+          </div>
+          <div class="hero-card-result" data-en="&ldquo;I have been working here for 3 years.&rdquo; &mdash; 1 error corrected" data-ja="「私は3年間ここで働いています。」&mdash; 1件の誤り修正済み">
+            "I have been working here for 3 years." — 1 error corrected
+          </div>
+          <div class="hero-card-tags">
+            <span class="hero-tag" data-en="Japanese" data-ja="日本語">Japanese</span>
+            <span class="hero-tag" data-en="English" data-ja="英語">English</span>
+            <span class="hero-tag" data-en="13+ Languages" data-ja="13言語以上">13+ Languages</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FEATURES ──────────────────────────────── -->
+<section id="features">
+  <div class="container">
+    <div class="section-header fade-in">
+      <div class="section-label" data-en="What It Does" data-ja="主な機能">What It Does</div>
+      <h2 class="section-title" data-en="Three Powerful AI Tools,<br>One Extension" data-ja="3つのAIツールが<br>ひとつの拡張機能に">
+        Three Powerful AI Tools,<br>One Extension
+      </h2>
+      <p class="section-desc" data-en="Everything you need to understand and write in any language – built right into your browser." data-ja="あらゆる言語を理解・作成するために必要なものがすべてブラウザに内蔵されています。">
+        Everything you need to understand and write in any language – built right into your browser.
+      </p>
+    </div>
+
+    <div class="features-grid">
+      <div class="feature-card glass fade-in">
+        <div class="feature-icon blue">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 8l6 6M4 14l6-6 2-3M2 5h12M7 2h1M22 22l-5-10-5 10M14 18h6"/>
+          </svg>
+        </div>
+        <h3 class="feature-title" data-en="Smart Translation" data-ja="スマート翻訳">Smart Translation</h3>
+        <p class="feature-desc" data-en="Highlight any text and get an instant, context-aware translation powered by Gemini AI. Supports 13+ languages including Japanese, English, Vietnamese, and more." data-ja="テキストを選択するだけで、Gemini AIによる文脈を理解した翻訳を即座に取得。日本語・英語・ベトナム語など13言語以上に対応。">
+          Highlight any text and get an instant, context-aware translation powered by Gemini AI. Supports 13+ languages including Japanese, English, Vietnamese, and more.
+        </p>
+        <div class="feature-tags">
+          <span class="ftag">Gemini AI</span>
+          <span class="ftag">13+ langs</span>
+          <span class="ftag">Alt+T</span>
+        </div>
+      </div>
+
+      <div class="feature-card glass fade-in">
+        <div class="feature-icon green">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+          </svg>
+        </div>
+        <h3 class="feature-title" data-en="Grammar Check" data-ja="文法チェック">Grammar Check</h3>
+        <p class="feature-desc" data-en="Instantly detect and fix grammar, spelling, and punctuation errors. See a clear diff view showing exactly what changed – perfect for learning." data-ja="文法・スペル・句読点のエラーを即座に検出・修正。変更箇所が一目でわかるdiff表示で学習にも最適。">
+          Instantly detect and fix grammar, spelling, and punctuation errors. See a clear diff view showing exactly what changed – perfect for learning.
+        </p>
+        <div class="feature-tags">
+          <span class="ftag">LanguageTool</span>
+          <span class="ftag">Diff View</span>
+          <span class="ftag">Alt+G</span>
+        </div>
+      </div>
+
+      <div class="feature-card glass fade-in">
+        <div class="feature-icon rose">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+            <circle cx="8.5" cy="8.5" r="1.5"/>
+            <polyline points="21 15 16 10 5 21"/>
+          </svg>
+        </div>
+        <h3 class="feature-title" data-en="Image Text (OCR)" data-ja="画像テキスト抽出 (OCR)">Image Text (OCR)</h3>
+        <p class="feature-desc" data-en="Right-click any image on the web to extract and copy its text using Gemini Vision. Preserves the original layout and line structure." data-ja="Web上の画像を右クリックするだけで、Gemini Visionがテキストを抽出・コピー。元のレイアウトと改行構造を維持。">
+          Right-click any image on the web to extract and copy its text using Gemini Vision. Preserves the original layout and line structure.
+        </p>
+        <div class="feature-tags">
+          <span class="ftag">Gemini Vision</span>
+          <span class="ftag">Right-click</span>
+          <span class="ftag">Copy ready</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── HOW IT WORKS ──────────────────────────── -->
+<section id="how-it-works">
+  <div class="container">
+    <div class="section-header fade-in">
+      <div class="section-label" data-en="Super Simple" data-ja="とても簡単">Super Simple</div>
+      <h2 class="section-title" data-en="3 Steps, That's It" data-ja="たった3ステップ">3 Steps, That's It</h2>
+      <p class="section-desc" data-en="No sign-up. No complex setup. Just highlight, click, and understand." data-ja="登録不要。複雑な設定なし。選択 → クリック → 理解するだけ。">
+        No sign-up. No complex setup. Just highlight, click, and understand.
+      </p>
+    </div>
+
+    <div class="steps-grid">
+      <div class="step-card glass fade-in">
+        <div class="step-number">1</div>
+        <h3 class="step-title" data-en="Select Text" data-ja="テキストを選択">Select Text</h3>
+        <p class="step-desc" data-en="Highlight any text on any webpage. A small icon will instantly appear next to your cursor." data-ja="任意のWebページでテキストを選択すると、カーソルの横にアイコンがすぐに表示されます。">
+          Highlight any text on any webpage. A small icon will instantly appear next to your cursor.
+        </p>
+      </div>
+      <div class="step-card glass fade-in">
+        <div class="step-number">2</div>
+        <h3 class="step-title" data-en="Click the Icon" data-ja="アイコンをクリック">Click the Icon</h3>
+        <p class="step-desc" data-en="Tap the floating icon to translate, or use Alt+G to check grammar. Or right-click an image to run OCR." data-ja="フローティングアイコンをタップして翻訳、またはAlt+Gで文法チェック。画像を右クリックでOCR実行。">
+          Tap the floating icon to translate, or use Alt+G to check grammar. Or right-click an image to run OCR.
+        </p>
+      </div>
+      <div class="step-card glass fade-in">
+        <div class="step-number">3</div>
+        <h3 class="step-title" data-en="Read the Result" data-ja="結果を確認">Read the Result</h3>
+        <p class="step-desc" data-en="AI results appear in a clean popup, right where you're reading. No tab switching, no copy-pasting needed." data-ja="AI結果はきれいなポップアップで表示。タブ切り替えもコピー&ペーストも不要。">
+          AI results appear in a clean popup, right where you're reading. No tab switching, no copy-pasting needed.
+        </p>
+      </div>
+    </div>
+
+    <!-- Keyboard Shortcuts -->
+    <div class="shortcuts-bar fade-in">
+      <div class="shortcut-pill glass">
+        <span data-en="Translate" data-ja="翻訳">Translate</span>
+        <span class="shortcut-key">
+          <span class="kbd">Alt</span>
+          <span style="color:var(--color-muted);font-size:0.75rem">+</span>
+          <span class="kbd">T</span>
+        </span>
+      </div>
+      <div class="shortcut-pill glass">
+        <span data-en="Grammar Check" data-ja="文法チェック">Grammar Check</span>
+        <span class="shortcut-key">
+          <span class="kbd">Alt</span>
+          <span style="color:var(--color-muted);font-size:0.75rem">+</span>
+          <span class="kbd">G</span>
+        </span>
+      </div>
+      <div class="shortcut-pill glass">
+        <span data-en="Settings" data-ja="設定">Settings</span>
+        <span class="shortcut-key">
+          <span class="kbd">Alt</span>
+          <span style="color:var(--color-muted);font-size:0.75rem">+</span>
+          <span class="kbd">S</span>
+        </span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── INSTALL GUIDE ──────────────────────────── -->
+<section id="install">
+  <div class="container">
+    <div class="section-header fade-in">
+      <div class="section-label" data-en="Installation Guide" data-ja="インストールガイド">Installation Guide</div>
+      <h2 class="section-title" data-en="Easy 4-Step Setup" data-ja="簡単4ステップ設定">Easy 4-Step Setup</h2>
+      <p class="section-desc" data-en="No technical knowledge required. Follow the steps below and you'll be ready in under 2 minutes." data-ja="技術的な知識は不要です。以下の手順に従えば2分以内に準備完了。">
+        No technical knowledge required. Follow the steps below and you'll be ready in under 2 minutes.
+      </p>
+    </div>
+
+    <div class="install-grid fade-in">
+      <!-- Steps list -->
+      <div class="install-steps">
+
+        <div class="install-step glass active" onclick="selectStep(this, 0)" id="istep-0">
+          <div class="install-step-header">
+            <div class="install-step-num">1</div>
+            <div class="install-step-text">
+              <h4 data-en="Download the Extension" data-ja="拡張機能をダウンロード">Download the Extension</h4>
+              <p data-en="Get the source code from GitHub" data-ja="GitHubからソースコードを取得">Get the source code from GitHub</p>
+            </div>
+          </div>
+          <div class="install-detail" data-en='Go to the <a href="https://github.com/hieutranH31/cmdn-hieutran31-translator-extension" class="api-link" target="_blank" rel="noopener">GitHub repository</a>. Click the green <strong>Code</strong> button → <strong>Download ZIP</strong>. Then unzip the downloaded file to a folder you can easily find (e.g., your Desktop).' data-ja='<a href="https://github.com/hieutranH31/cmdn-hieutran31-translator-extension" class="api-link" target="_blank" rel="noopener">GitHubリポジトリ</a>にアクセスし、緑色の<strong>Code</strong>ボタン→<strong>Download ZIP</strong>をクリック。ダウンロードしたファイルをわかりやすいフォルダ（デスクトップなど）に解凍してください。'>
+            Go to the <a href="https://github.com/hieutranH31/cmdn-hieutran31-translator-extension" class="api-link" target="_blank" rel="noopener">GitHub repository</a>. Click the green <strong>Code</strong> button → <strong>Download ZIP</strong>. Then unzip the downloaded file to a folder you can easily find (e.g., your Desktop).
+          </div>
+        </div>
+
+        <div class="install-step glass" onclick="selectStep(this, 1)" id="istep-1">
+          <div class="install-step-header">
+            <div class="install-step-num">2</div>
+            <div class="install-step-text">
+              <h4 data-en="Open Chrome Extensions" data-ja="Chrome拡張機能ページを開く">Open Chrome Extensions</h4>
+              <p data-en="Navigate to the extensions manager" data-ja="拡張機能マネージャーに移動">Navigate to the extensions manager</p>
+            </div>
+          </div>
+          <div class="install-detail" data-en="Open Google Chrome. In the address bar, type <strong>chrome://extensions</strong> and press Enter. You'll see a page showing all your installed extensions." data-ja="Google Chromeを開き、アドレスバーに<strong>chrome://extensions</strong>と入力してEnterを押します。インストール済み拡張機能の一覧ページが表示されます。">
+            Open Google Chrome. In the address bar, type <strong>chrome://extensions</strong> and press Enter. You'll see a page showing all your installed extensions.
+          </div>
+        </div>
+
+        <div class="install-step glass" onclick="selectStep(this, 2)" id="istep-2">
+          <div class="install-step-header">
+            <div class="install-step-num">3</div>
+            <div class="install-step-text">
+              <h4 data-en="Enable Developer Mode" data-ja="デベロッパーモードを有効化">Enable Developer Mode</h4>
+              <p data-en="A one-time toggle to allow loading extensions" data-ja="拡張機能の読み込みを許可する一度限りの設定">A one-time toggle to allow loading extensions</p>
+            </div>
+          </div>
+          <div class="install-detail" data-en='In the top-right corner of the Extensions page, find the <strong>Developer mode</strong> toggle and turn it <strong>ON</strong>. This is a standard Chrome option for installing extensions that aren&apos;t in the Chrome Web Store.' data-ja='拡張機能ページの右上にある<strong>デベロッパーモード</strong>のトグルを<strong>ON</strong>にします。これはChrome Web Storeにない拡張機能をインストールする標準的なChromeオプションです。'>
+            In the top-right corner of the Extensions page, find the <strong>Developer mode</strong> toggle and turn it <strong>ON</strong>. This is a standard Chrome option for installing extensions that aren't in the Chrome Web Store.
+          </div>
+        </div>
+
+        <div class="install-step glass" onclick="selectStep(this, 3)" id="istep-3">
+          <div class="install-step-header">
+            <div class="install-step-num">4</div>
+            <div class="install-step-text">
+              <h4 data-en="Load the Extension" data-ja="拡張機能を読み込む">Load the Extension</h4>
+              <p data-en="Point Chrome to your downloaded folder" data-ja="ダウンロードしたフォルダをChromeに指定">Point Chrome to your downloaded folder</p>
+            </div>
+          </div>
+          <div class="install-detail" data-en='Click the <strong>Load unpacked</strong> button that now appears. In the file picker, navigate to and select the unzipped folder from Step 1. Click <strong>Select Folder</strong>. The AI Translator icon will appear in your Chrome toolbar!' data-ja='表示された<strong>パッケージ化されていない拡張機能を読み込む</strong>ボタンをクリック。ファイル選択画面でStep 1で解凍したフォルダを選択し、<strong>フォルダの選択</strong>をクリック。AI TranslatorアイコンがChromeツールバーに表示されます！'>
+            Click the <strong>Load unpacked</strong> button that now appears. In the file picker, navigate to and select the unzipped folder from Step 1. Click <strong>Select Folder</strong>. The AI Translator icon will appear in your Chrome toolbar!
+          </div>
+        </div>
+      </div>
+
+      <!-- Visual Preview Panel -->
+      <div class="install-preview glass">
+        <div class="browser-frame">
+          <div class="browser-bar">
+            <div class="browser-dot"></div>
+            <div class="browser-dot"></div>
+            <div class="browser-dot"></div>
+            <div class="browser-url">chrome://extensions</div>
+          </div>
+          <div class="browser-content">
+
+            <!-- Step 0: Download -->
+            <div class="step-visual show" id="visual-0">
+              <div class="visual-row">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                <span data-en="Download ZIP from GitHub →" data-ja="GitHubからZIPをダウンロード →">Download ZIP from GitHub →</span>
+              </div>
+              <div class="visual-row">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                <span data-en="Unzip to Desktop" data-ja="デスクトップに解凍">Unzip to Desktop</span>
+              </div>
+              <div class="note-box" data-en="💡 Tip: Right-click the ZIP file and choose 'Extract All'" data-ja="💡 ヒント：ZIPファイルを右クリックして「すべて展開」を選択">
+                💡 Tip: Right-click the ZIP file and choose 'Extract All'
+              </div>
+            </div>
+
+            <!-- Step 1: chrome://extensions -->
+            <div class="step-visual" id="visual-1">
+              <div class="visual-row">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                <span data-en="Open Chrome browser" data-ja="Chromeブラウザを開く">Open Chrome browser</span>
+              </div>
+              <div class="visual-row">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+                <span>Type: <strong style="color:#7c8fff">chrome://extensions</strong></span>
+              </div>
+              <div class="note-box" data-en="💡 You can also go to: Menu (⋮) → More Tools → Extensions" data-ja="💡 メニュー(⋮)→その他のツール→拡張機能 からも開けます">
+                💡 You can also go to: Menu (⋮) → More Tools → Extensions
+              </div>
+            </div>
+
+            <!-- Step 2: Developer mode -->
+            <div class="step-visual" id="visual-2">
+              <div class="visual-row">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                <span data-en="Look to the top-right corner" data-ja="右上のコーナーを確認">Look to the top-right corner</span>
+              </div>
+              <div class="visual-toggle">
+                <span data-en="Developer mode" data-ja="デベロッパーモード">Developer mode</span>
+                <div class="toggle-pill"></div>
+              </div>
+              <div class="note-box" data-en="💡 This is safe! It's a standard Chrome feature and can always be turned off later." data-ja="💡 安全です！これは標準的なChrome機能で、後からいつでもOFFにできます。">
+                💡 This is safe! It's a standard Chrome feature and can always be turned off later.
+              </div>
+            </div>
+
+            <!-- Step 3: Load unpacked -->
+            <div class="step-visual" id="visual-3">
+              <div class="visual-row">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                <span data-en='Click "Load unpacked" button' data-ja='「パッケージ化されていない拡張機能を読み込む」をクリック'>Click "Load unpacked" button</span>
+              </div>
+              <div class="visual-row">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                <span data-en="Select the unzipped folder → Done!" data-ja="解凍したフォルダを選択 → 完了！">Select the unzipped folder → Done!</span>
+              </div>
+              <div class="note-box" style="background:rgba(45,212,191,0.1);border-color:rgba(45,212,191,0.3);color:#a7f3d0;" data-en="🎉 The AI Translator icon will now appear in your Chrome toolbar!" data-ja="🎉 AIトランスレーターアイコンがChromeツールバーに表示されます！">
+                🎉 The AI Translator icon will now appear in your Chrome toolbar!
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── API KEY GUIDE ──────────────────────────── -->
+<section id="api-key">
+  <div class="container">
+    <div class="api-inner glass fade-in">
+      <div class="section-header" style="margin-bottom:0">
+        <div class="section-label" data-en="Last Step" data-ja="最後のステップ">Last Step</div>
+        <h2 class="section-title" data-en="Set Up Your Free API Key" data-ja="無料APIキーを設定する">Set Up Your Free API Key</h2>
+        <p class="section-desc" data-en="The extension uses Google Gemini AI. Getting a free API key takes only 1 minute." data-ja="この拡張機能はGoogle Gemini AIを使用します。無料のAPIキーの取得はわずか1分でできます。">
+          The extension uses Google Gemini AI. Getting a free API key takes only 1 minute.
+        </p>
+      </div>
+
+      <div class="api-steps">
+        <div class="api-step">
+          <div class="api-step-num">1</div>
+          <div class="api-step-body">
+            <h4 data-en="Visit Google AI Studio" data-ja="Google AI Studioにアクセス">Visit Google AI Studio</h4>
+            <p>
+              <span data-en='Go to ' data-ja='以下にアクセス：'>Go to </span>
+              <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" class="api-link">aistudio.google.com/apikey</a>
+              <span data-en=" and sign in with your Google account." data-ja=" に移動し、Googleアカウントでサインイン。"> and sign in with your Google account.</span>
+            </p>
+          </div>
+        </div>
+        <div class="api-step">
+          <div class="api-step-num">2</div>
+          <div class="api-step-body">
+            <h4 data-en='Click "Create API Key"' data-ja='「APIキーを作成」をクリック'>Click "Create API Key"</h4>
+            <p data-en='Click the blue "Create API key" button. Select "Create API key in new project". Your key will be generated instantly.' data-ja='青い「APIキーを作成」ボタンをクリック。「新しいプロジェクトでAPIキーを作成」を選択。キーはすぐに生成されます。'>
+              Click the blue "Create API key" button. Select "Create API key in new project". Your key will be generated instantly.
+            </p>
+          </div>
+        </div>
+        <div class="api-step">
+          <div class="api-step-num">3</div>
+          <div class="api-step-body">
+            <h4 data-en="Copy the Key" data-ja="キーをコピー">Copy the Key</h4>
+            <p data-en='Click the copy icon next to your API key. It looks like a long string of random letters and numbers starting with "AIza...".' data-ja='APIキーの横のコピーアイコンをクリック。「AIza...」で始まるランダムな文字と数字の長い文字列です。'>
+              Click the copy icon next to your API key. It looks like a long string of random letters and numbers starting with "AIza...".
+            </p>
+          </div>
+        </div>
+        <div class="api-step">
+          <div class="api-step-num">4</div>
+          <div class="api-step-body">
+            <h4 data-en="Paste into Extension Settings" data-ja="拡張機能の設定にペースト">Paste into Extension Settings</h4>
+            <p data-en="Click the AI Translator icon in your Chrome toolbar → Open Settings (or press Alt+S) → Paste your API key → Save. You're all set!" data-ja="ChromeツールバーのAI Translatorアイコンをクリック→設定を開く（またはAlt+S）→APIキーを貼り付け→保存。これで完了！">
+              Click the AI Translator icon in your Chrome toolbar → Open Settings (or press Alt+S) → Paste your API key → Save. You're all set!
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="api-note">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+          <polyline points="22 4 12 14.01 9 11.01"/>
+        </svg>
+        <span data-en="The free Gemini API quota is generous for personal use. Your API key is stored only on your device (Chrome local storage) and is never sent anywhere except to Google's servers to process your requests." data-ja="無料のGemini APIクォータは個人利用に十分です。APIキーはデバイスのみ（Chromeローカルストレージ）に保存され、リクエスト処理のためのGoogleサーバー以外には送信されません。">
+          The free Gemini API quota is generous for personal use. Your API key is stored only on your device (Chrome local storage) and is never sent anywhere except to Google's servers to process your requests.
+        </span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── FOOTER ─────────────────────────────────── -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-logo">AI Translator & Grammar Check</div>
+    <p class="footer-desc" data-en="Open-source Chrome Extension powered by Google Gemini AI · Built by Hieu Tran H" data-ja="Google Gemini AI搭載のオープンソースChrome拡張機能 · Hieu Tran H 製作">
+      Open-source Chrome Extension powered by Google Gemini AI · Built by Hieu Tran H
+    </p>
+    <div class="footer-links">
+      <a href="https://github.com/hieutranH31/cmdn-hieutran31-translator-extension" target="_blank" rel="noopener" data-en="GitHub" data-ja="GitHub">GitHub</a>
+      <a href="#features" data-en="Features" data-ja="機能">Features</a>
+      <a href="#install" data-en="Install" data-ja="インストール">Install</a>
+      <a href="#api-key" data-en="API Key Setup" data-ja="APIキー設定">API Key Setup</a>
+    </div>
+    <p class="footer-copy" data-en="Open source · MIT License · Free to use" data-ja="オープンソース · MITライセンス · 無料使用可">
+      Open source · MIT License · Free to use
+    </p>
+  </div>
+</footer>
+
+<!-- ── JavaScript ─────────────────────────────── -->
+<script>
+  /* ── Language Switcher ──────────────────────── */
+  let currentLang = 'en';
+
+  function setLang(lang) {
+    currentLang = lang;
+
+    // Toggle active button
+    document.getElementById('btn-en').classList.toggle('active', lang === 'en');
+    document.getElementById('btn-ja').classList.toggle('active', lang === 'ja');
+    document.documentElement.lang = lang === 'ja' ? 'ja' : 'en';
+
+    // Swap all data-en / data-ja attributes
+    document.querySelectorAll('[data-en]').forEach(el => {
+      const text = el.getAttribute(`data-${lang}`);
+      if (!text) return;
+      if (el.tagName === 'META') {
+        el.setAttribute('content', text);
+      } else if (el.tagName === 'TITLE') {
+        el.textContent = text;
+      } else {
+        el.innerHTML = text;
+      }
+    });
+  }
+
+  /* ── Installation Step Selector ─────────────── */
+  function selectStep(el, idx) {
+    // Deactivate all steps
+    document.querySelectorAll('.install-step').forEach(s => s.classList.remove('active'));
+    // Deactivate all visuals
+    document.querySelectorAll('.step-visual').forEach(v => v.classList.remove('show'));
+    // Activate selected
+    el.classList.add('active');
+    const visual = document.getElementById(`visual-${idx}`);
+    if (visual) visual.classList.add('show');
+  }
+
+  /* ── Scroll Fade-in Animation ────────────────── */
+  const fadeEls = document.querySelectorAll('.fade-in');
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach((entry, i) => {
+      if (entry.isIntersecting) {
+        setTimeout(() => entry.target.classList.add('visible'), i * 80);
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.12 });
+  fadeEls.forEach(el => observer.observe(el));
+
+  /* ── Smooth active nav detection ─────────────── */
+  const navCta = document.querySelector('.nav-cta');
+  window.addEventListener('scroll', () => {
+    const scrolled = window.scrollY > 60;
+    document.querySelector('.navbar').style.background = scrolled
+      ? 'rgba(15, 18, 50, 0.85)'
+      : 'rgba(255, 255, 255, 0.08)';
+  });
+</script>
+</body>
+</html>
