@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Translator - Flashcards</title>
+    <link rel="stylesheet" href="flashcards.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-left">
+                <div class="logo-box">⭐️</div>
+                <h1>My Flashcards</h1>
+            </div>
+            <div class="header-right">
+                <span id="cardCount" class="badge">0 cards</span>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Loading state -->
+            <div id="loadingState" class="state-container">
+                <div class="spinner"></div>
+                <p>Loading your vocabulary...</p>
+            </div>
+
+            <!-- Empty state -->
+            <div id="emptyState" class="state-container" style="display: none;">
+                <div class="empty-icon">📚</div>
+                <h2>Your collection is empty</h2>
+                <p>Translate words on any website and click the ⭐️ Save button to add them here.</p>
+            </div>
+
+            <!-- Flashcards Grid -->
+            <div id="flashcardGrid" class="flashcard-grid" style="display: none;">
+                <!-- Cards will be populated here via JavaScript -->
+            </div>
+        </main>
+    </div>
+
+    <!-- Script -->
+    <script src="flashcards.js"></script>
+</body>
+</html>

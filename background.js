@@ -534,6 +534,88 @@ async function checkGrammarWithLanguageTool(text) {
     }
 }
 
+// ==========================================
+// FLASHCARD INDEXEDDB MANAGEMENT
+// ==========================================
+const DB_NAME = 'AITranslatorDB';
+const DB_VERSION = 1;
+const STORE_NAME = 'flashcards';
+
+// Helper: Open Database
+function openDatabase() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+        request.onerror = (event) => {
+            console.error('Database error:', event.target.error);
+            reject('Database error: ' + event.target.error);
+        };
+
+        request.onsuccess = (event) => {
+            resolve(event.target.result);
+        };
+
+        request.onupgradeneeded = (event) => {
+            const db = event.target.result;
+            if (!db.objectStoreNames.contains(STORE_NAME)) {
+                const objectStore = db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+                objectStore.createIndex('createdAt', 'createdAt', { unique: false });
+                console.log('Object store created');
+            }
+        };
+    });
+}
+
+// Add Flashcard
+async function addFlashcard(cardData) {
+    const db = await openDatabase();
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction([STORE_NAME], 'readwrite');
+        const store = transaction.objectStore(STORE_NAME);
+
+        const newCard = {
+            id: Date.now().toString(),
+            word: cardData.word,
+            translation: cardData.translation,
+            context: cardData.context || '',
+            example: cardData.example || '',
+            dictionary: cardData.dictionary || [],
+            createdAt: new Date().toISOString()
+        };
+
+        const request = store.add(newCard);
+
+        request.onsuccess = () => resolve(newCard);
+        request.onerror = (e) => reject('Error saving card: ' + e.target.error);
+    });
+}
+
+// Get all Flashcards
+async function getAllFlashcards() {
+    const db = await openDatabase();
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction([STORE_NAME], 'readonly');
+        const store = transaction.objectStore(STORE_NAME);
+        const request = store.getAll();
+
+        request.onsuccess = () => resolve(request.result || []);
+        request.onerror = (e) => reject('Error getting cards: ' + e.target.error);
+    });
+}
+
+// Delete Flashcard
+async function deleteFlashcard(id) {
+    const db = await openDatabase();
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction([STORE_NAME], 'readwrite');
+        const store = transaction.objectStore(STORE_NAME);
+        const request = store.delete(id);
+
+        request.onsuccess = () => resolve(true);
+        request.onerror = (e) => reject('Error deleting card: ' + e.target.error);
+    });
+}
+
 // Handle messages from content scripts and popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'translateSelection') {
@@ -553,6 +635,43 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             });
         });
         sendResponse({ success: true });
+    }
+
+    // NEW: Flashcard DB Actions Processing
+    else if (request.action === 'saveFlashcard') {
+        (async () => {
+             try {
+                 const newCard = await addFlashcard(request.data);
+                 sendResponse({ success: true, data: newCard });
+             } catch (error) {
+                 sendResponse({ success: false, error: error.toString() });
+             }
+        })();
+        return true;
+    } 
+    else if (request.action === 'getFlashcards') {
+        (async () => {
+             try {
+                 const cards = await getAllFlashcards();
+                 // Sort descending by date
+                 cards.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+                 sendResponse({ success: true, data: cards });
+             } catch (error) {
+                 sendResponse({ success: false, error: error.toString() });
+             }
+        })();
+        return true;
+    }
+    else if (request.action === 'deleteFlashcard') {
+        (async () => {
+             try {
+                 await deleteFlashcard(request.id);
+                 sendResponse({ success: true });
+             } catch (error) {
+                 sendResponse({ success: false, error: error.toString() });
+             }
+        })();
+        return true;
     }
 
     // NEW: Handle API calls via background script

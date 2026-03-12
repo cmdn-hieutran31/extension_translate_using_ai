@@ -604,6 +604,11 @@ document.getElementById('openSettingsBtn')?.addEventListener('click', () => {
     chrome.tabs.create({ url: 'settings.html' });
 });
 
+// Open Flashcards button
+document.getElementById('openFlashcardsBtn')?.addEventListener('click', () => {
+    chrome.tabs.create({ url: 'flashcards.html' });
+});
+
 // ========== Image Upload Functionality ==========
 
 // Paste from clipboard (Ctrl+V / Cmd+V)

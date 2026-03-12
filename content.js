@@ -6,10 +6,38 @@ console.log('[AI Translator] Content script loaded');
 // State
 let lastSelectedText = '';
 let lastSelectionRange = null;
+let lastSelectedContext = '';
+let lastDictionaryData = null; // Stores dictionary data from last translation result
 let translateIcon = null;
 let translatePopup = null;
 let justOpenedPopup = false; // Flag to prevent immediate closing
 let popupCloseTimeout = null;
+
+// Helper function to extract surrounding context/sentence
+function extractContextSentence(selection, selectedText) {
+    try {
+        if (!selection || selection.rangeCount === 0) return '';
+        const range = selection.getRangeAt(0);
+        const container = range.commonAncestorContainer;
+        const parent = container.nodeType === 3 ? container.parentNode : container;
+        if (!parent) return '';
+        
+        let sentence = parent.textContent.trim().replace(/\s+/g, ' ');
+        if (sentence.length > 200) {
+            let idx = sentence.toLowerCase().indexOf(selectedText.toLowerCase());
+            if (idx !== -1) {
+                 let start = Math.max(0, idx - 80);
+                 let end = Math.min(sentence.length, idx + selectedText.length + 80);
+                 sentence = (start > 0 ? '...' : '') + sentence.substring(start, end) + (end < sentence.length ? '...' : '');
+            } else {
+                 sentence = sentence.substring(0, 150) + '...';
+            }
+        }
+        return sentence;
+    } catch (e) {
+        return '';
+    }
+}
 
 // Feature flags - defaults to true
 let grammarCheckEnabled = true;
@@ -327,6 +355,7 @@ function createTranslatePopup() {
       <div class="ai-translator-popup-result" id="ai-translator-popup-result">Translation will appear here...</div>
       <div class="ai-translator-popup-actions">
         <button class="ai-translator-popup-btn" id="ai-translator-popup-copy">Copy</button>
+        <button class="ai-translator-popup-btn" id="ai-translator-popup-save" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important; color: white !important;">⭐️ Save</button>
         <button class="ai-translator-popup-btn" id="ai-translator-popup-ai" style="display: none; background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;">✨ Translate with AI</button>
       </div>
     </div>
@@ -344,6 +373,44 @@ function createTranslatePopup() {
     document
         .getElementById('ai-translator-popup-speak')
         .addEventListener('click', speakPopupText);
+
+    // Save Flashcard listener
+    document
+        .getElementById('ai-translator-popup-save')
+        .addEventListener('click', async () => {
+             const resultDiv = document.getElementById('ai-translator-popup-result');
+             const saveBtn = document.getElementById('ai-translator-popup-save');
+             const originalText = saveBtn.textContent;
+             
+             // Get first translation line or whole text
+             let transText = resultDiv.innerText;
+             if (transText.includes('✨')) {
+                 transText = transText.split('\n')[0].replace('✨', '').trim();
+             }
+
+             if (!lastSelectedText || !transText || transText.includes('Translating')) return;
+
+             saveBtn.textContent = 'Saving...';
+             
+             chrome.runtime.sendMessage({
+                 action: 'saveFlashcard',
+                 data: {
+                     word: lastSelectedText,
+                     translation: transText,
+                     context: window.location.href,
+                     example: lastSelectedContext,
+                     dictionary: lastDictionaryData || [] // save dictionary data
+                 }
+             }, (response) => {
+                 if (response && response.success) {
+                     saveBtn.textContent = 'Saved! ✅';
+                     setTimeout(() => { saveBtn.textContent = originalText; }, 2000);
+                 } else {
+                     saveBtn.textContent = 'Failed ❌';
+                     setTimeout(() => { saveBtn.textContent = originalText; }, 2000);
+                 }
+             });
+        });
 
     // AI Translate button listener
     document
@@ -490,6 +557,8 @@ async function showTranslatePopup() {
             const resData = translationResponse.data;
 
             if (typeof resData === 'object' && resData.dictionary) {
+                // Capture dictionary data for save flashcard
+                lastDictionaryData = resData.dictionary || [];
                 // Render Dictionary UI
                 htmlContent = `<div style="font-weight: 500; font-size: 15px; margin-bottom: 8px;">✨ ${resData.translation}</div>`;
 
@@ -518,9 +587,11 @@ async function showTranslatePopup() {
                 }
             } else {
                 // Fallback normal string
+                lastDictionaryData = null;
                 htmlContent = String(resData).replace(/\n/g, '<br>');
             }
         } else {
+            lastDictionaryData = null;
             htmlContent = String(translationResponse).replace(/\n/g, '<br>');
         }
 
@@ -744,8 +815,9 @@ document.addEventListener('mouseup', (e) => {
             lastSelectedText = selectedText;
             try {
                 lastSelectionRange = selection.getRangeAt(0).cloneRange();
+                lastSelectedContext = extractContextSentence(selection, selectedText);
             } catch (err) {
-                // Ignore
+                lastSelectedContext = '';
             }
             showTranslateIcon();
         } else {
@@ -788,9 +860,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         if (selection.rangeCount > 0) {
             try {
                 lastSelectionRange = selection.getRangeAt(0).cloneRange();
+                lastSelectedContext = extractContextSentence(selection, lastSelectedText);
             } catch (err) {
-                // Ignore
+                lastSelectedContext = '';
             }
+        } else {
+            lastSelectedContext = '';
         }
         showTranslatePopup();
         sendResponse({ success: true });
