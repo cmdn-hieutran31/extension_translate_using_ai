@@ -475,6 +475,8 @@ chrome.commands.onCommand.addListener((command) => {
             );
         } else if (command === 'open-settings') {
             chrome.tabs.create({ url: 'settings.html' });
+        } else if (command === 'open-flashcards') {
+            chrome.tabs.create({ url: 'flashcards.html' });
         }
     });
 });
@@ -616,6 +618,35 @@ async function deleteFlashcard(id) {
     });
 }
 
+// Update Flashcard
+async function updateFlashcard(id, updatedData) {
+    const db = await openDatabase();
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction([STORE_NAME], 'readwrite');
+        const store = transaction.objectStore(STORE_NAME);
+        
+        // Get the existing card first
+        const getRequest = store.get(id);
+        
+        getRequest.onsuccess = () => {
+            const card = getRequest.result;
+            if (!card) {
+                reject('Card not found');
+                return;
+            }
+            
+            // Merge updated data
+            const newCard = { ...card, ...updatedData, updatedAt: new Date().toISOString() };
+            const putRequest = store.put(newCard);
+            
+            putRequest.onsuccess = () => resolve(newCard);
+            putRequest.onerror = (e) => reject('Error updating card: ' + e.target.error);
+        };
+        
+        getRequest.onerror = (e) => reject('Error getting card: ' + e.target.error);
+    });
+}
+
 // Handle messages from content scripts and popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'translateSelection') {
@@ -667,6 +698,17 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
              try {
                  await deleteFlashcard(request.id);
                  sendResponse({ success: true });
+             } catch (error) {
+                 sendResponse({ success: false, error: error.toString() });
+             }
+        })();
+        return true;
+    }
+    else if (request.action === 'updateFlashcard') {
+        (async () => {
+             try {
+                 const updatedCard = await updateFlashcard(request.id, request.data);
+                 sendResponse({ success: true, data: updatedCard });
              } catch (error) {
                  sendResponse({ success: false, error: error.toString() });
              }

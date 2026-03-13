@@ -71,18 +71,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Format example sentence
             let exampleHtml = '';
-            if (card.example && card.example.length > card.word.length) {
-                try {
-                    const regex = new RegExp(`(${card.word})`, 'gi');
-                    const highlighted = card.example.replace(
-                        regex,
-                        '<strong>$1</strong>'
-                    );
-                    exampleHtml = `<div class="example-text">"${highlighted}"</div>`;
-                } catch (e) {
-                    exampleHtml = `<div class="example-text">"${card.example}"</div>`;
-                }
-            }
+            const exampleText = card.example || '';
+            const highlighted = (card.example && card.example.length > card.word.length) 
+                ? card.example.replace(new RegExp(`(${escapeRegex(card.word)})`, 'gi'), '<strong>$1</strong>')
+                : exampleText;
+
+            exampleHtml = `
+                <div class="example-container">
+                    <div class="example-view">
+                        <div class="example-text">${highlighted ? `"${highlighted}"` : '<span class="no-example">No example provided</span>'}</div>
+                        <button class="btn-edit-example" title="Edit example">📝</button>
+                    </div>
+                    <div class="example-edit" style="display: none;">
+                        <textarea class="edit-example-input" placeholder="Enter your example here...">${exampleText}</textarea>
+                        <div class="edit-actions">
+                            <button class="btn-save-example">Save</button>
+                            <button class="btn-cancel-example">Cancel</button>
+                        </div>
+                    </div>
+                </div>`;
 
             // Dictionary drawer
             const hasDictionary = card.dictionary && card.dictionary.length > 0;
@@ -131,7 +138,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // Flip Logic
             cardEl.addEventListener('click', (e) => {
-                if (e.target.closest('button')) return;
+                // Don't flip if clicking on a button or inside the edit container
+                if (e.target.closest('button') || e.target.closest('.example-edit')) return;
                 cardEl.classList.toggle('flipped');
             });
 
@@ -150,6 +158,60 @@ document.addEventListener('DOMContentLoaded', () => {
                 deleteBtn.addEventListener('click', (e) => {
                     e.stopPropagation();
                     deleteCard(card.id, wrapper);
+                });
+            }
+
+            // Edit Example Logic
+            const exampleContainer = wrapper.querySelector('.example-container');
+            const editBtn = wrapper.querySelector('.btn-edit-example');
+            const saveBtn = wrapper.querySelector('.btn-save-example');
+            const cancelBtn = wrapper.querySelector('.btn-cancel-example');
+            const viewDiv = wrapper.querySelector('.example-view');
+            const editDiv = wrapper.querySelector('.example-edit');
+            const textarea = wrapper.querySelector('.edit-example-input');
+            const exampleDisplay = wrapper.querySelector('.example-text');
+
+            if (editBtn) {
+                editBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    viewDiv.style.display = 'none';
+                    editDiv.style.display = 'block';
+                    textarea.focus();
+                });
+            }
+
+            if (cancelBtn) {
+                cancelBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    textarea.value = card.example || '';
+                    viewDiv.style.display = 'flex';
+                    editDiv.style.display = 'none';
+                });
+            }
+
+            if (saveBtn) {
+                saveBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const newExample = textarea.value.trim();
+                    
+                    chrome.runtime.sendMessage({
+                        action: 'updateFlashcard',
+                        id: card.id,
+                        data: { example: newExample }
+                    }, (response) => {
+                        if (response && response.success) {
+                            card.example = newExample;
+                            const escapedWord = escapeRegex(card.word);
+                            const regex = new RegExp(`(${escapedWord})`, 'gi');
+                            const newHighlighted = newExample.replace(regex, '<strong>$1</strong>');
+                            exampleDisplay.innerHTML = newExample ? `"${newHighlighted}"` : '<span class="no-example">No example provided</span>';
+                            
+                            viewDiv.style.display = 'flex';
+                            editDiv.style.display = 'none';
+                        } else {
+                            alert('Error updating example');
+                        }
+                    });
                 });
             }
 
@@ -248,5 +310,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (state === 'loading') loadingState.style.display = 'flex';
         else if (state === 'empty') emptyState.style.display = 'flex';
         else if (state === 'grid') flashcardGrid.style.display = 'grid';
+    }
+
+    function escapeRegex(string) {
+        return string.replace(/[/\-\\^$*+?.()|[\]{}]/g, '\\$&');
     }
 });

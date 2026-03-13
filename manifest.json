@@ -76,6 +76,16 @@
         "linux": "Alt+S"
       },
       "description": "Open AI Translator settings"
+    },
+    "open-flashcards": {
+      "suggested_key": {
+        "default": "Alt+F",
+        "windows": "Alt+F",
+        "mac": "Alt+F",
+        "chromeos": "Alt+F",
+        "linux": "Alt+F"
+      },
+      "description": "Open My Flashcards"
     }
   }
 }
