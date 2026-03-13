@@ -131,7 +131,8 @@ body {
 .flashcard-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 20px;
+    column-gap: 20px;
+    row-gap: 40px;
     /* Tất cả card-wrapper cùng align-items: stretch (mặc định) → đều nhau */
     align-items: start;
 }
@@ -142,6 +143,13 @@ body {
 .card-wrapper {
     display: flex;
     flex-direction: column;
+    position: relative;
+    transition: z-index 0s;
+}
+
+/* Đảm bảo card đang mở drawer luôn nằm trên các card khác */
+.card-wrapper:has(.dict-drawer[data-open="true"]) {
+    z-index: 100;
 }
 
 /* =============================================
@@ -218,6 +226,7 @@ body {
     /* Khi ẩn: không delay */
     transition: opacity 0.15s ease 0s, visibility 0s ease 0.15s;
 }
+
 .card-wrapper:has(.flashcard.flipped) .dict-drawer {
     visibility: visible;
     opacity: 1;
@@ -438,8 +447,14 @@ body {
     border: 1px solid #e5e7eb;
     border-top: none;
     border-radius: 0 0 16px 16px;
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
     overflow: hidden;
+    position: absolute;
+    top: calc(var(--card-height) - 1px);
+    /* Kết nối mượt với card */
+    left: 0;
+    right: 0;
+    z-index: 50;
 }
 
 .dict-handle {
