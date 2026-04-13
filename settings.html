@@ -10,14 +10,19 @@
 
 <body>
   <div class="container">
-    <header>
-      <div class="logo">
-        <img src="icons/icon48.png" alt="AI Translator" width="48" height="48" />
-        <h1>AI Translator & Grammar Check</h1>
+    <header style="display: flex; justify-content: space-between; align-items: flex-start;">
+      <div>
+        <div class="logo">
+          <img src="icons/icon48.png" alt="AI Translator" width="48" height="48" />
+          <h1>AI Translator & Grammar Check</h1>
+        </div>
+        <p class="subtitle">
+          Powerful AI-powered translation and grammar checking
+        </p>
       </div>
-      <p class="subtitle">
-        Powerful AI-powered translation and grammar checking
-      </p>
+      <button class="icon-button" id="themeToggleBtn" title="Toggle Light/Dark Theme" style="padding: 10px; border-radius: 50%;">
+        <svg id="themeIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+      </button>
     </header>
 
     <main>

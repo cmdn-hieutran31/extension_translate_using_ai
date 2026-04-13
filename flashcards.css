@@ -1,17 +1,59 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+
 /* =============================================
-   BASE STYLES
+   BASE STYLES: Ultra Premium Dark Mode Glassmorphism
    ============================================= */
 :root {
-    --primary: #667eea;
-    --primary-dark: #5a70d6;
-    --secondary: #764ba2;
-    --bg-color: #f0f2f8;
-    --card-bg: #ffffff;
-    --text-color: #1f2937;
-    --text-muted: #6b7280;
+    --primary: #8b5cf6;
+    --primary-dark: #6d28d9;
+    --secondary: #3b82f6;
+    --bg-dark: #050505;
+    
+    --card-bg: rgba(20, 20, 25, 0.45);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --glass-shadow: 0 15px 40px -10px rgba(0, 0, 0, 0.6);
+    --glass-highlight: inset 0 1px 1px rgba(255, 255, 255, 0.15);
+    
+    --text-primary: #ffffff;
+    --text-muted: #a1a1aa;
     --danger: #ef4444;
     --warning: #f59e0b;
-    --card-height: 220px;
+    --card-height: 240px;
+    
+    --accent-1: #ff2a5f;
+    --accent-2: #00c6ff;
+    --accent-3: #7e22ce;
+    
+    --card-front-bg: linear-gradient(145deg, rgba(30, 41, 59, 0.7) 0%, rgba(15, 23, 42, 0.9) 100%);
+    --card-back-bg: linear-gradient(145deg, rgba(67, 56, 202, 0.7) 0%, rgba(49, 46, 129, 0.9) 100%);
+    --card-back-border: rgba(99, 102, 241, 0.3);
+    
+    --font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+:root[data-theme="light"] {
+    --primary: #8b5cf6;
+    --primary-dark: #6d28d9;
+    --secondary: #0ea5e9;
+    --bg-dark: #f8fafc;
+    
+    --card-bg: rgba(255, 255, 255, 0.7);
+    --glass-border: rgba(255, 255, 255, 0.5);
+    --glass-shadow: 0 15px 40px -10px rgba(0, 0, 0, 0.1);
+    --glass-highlight: inset 0 1px 1px rgba(255, 255, 255, 0.8);
+    
+    --text-primary: #0f172a;
+    --text-muted: #475569;
+    --danger: #e11d48;
+    --warning: #f59e0b;
+    
+    --accent-1: #e11d48;
+    --accent-2: #0284c7;
+    --accent-3: #7e22ce;
+    
+    --card-front-bg: linear-gradient(145deg, rgba(255, 255, 255, 0.7) 0%, rgba(248, 250, 252, 0.9) 100%);
+    --card-back-bg: linear-gradient(145deg, rgba(238, 242, 255, 0.7) 0%, rgba(224, 231, 255, 0.9) 100%);
+    --card-back-border: rgba(99, 102, 241, 0.3);
 }
 
 * {
@@ -21,16 +63,62 @@
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background-color: var(--bg-color);
-    color: var(--text-color);
+    font-family: var(--font-family);
+    background: var(--bg-dark);
+    color: var(--text-primary);
     line-height: 1.5;
+    min-height: 100vh;
+    position: relative;
+    z-index: 1;
+    overflow-x: hidden;
+}
+
+/* Magical Animated Background Orbs */
+body::before, body::after, .app-container::before {
+    content: '';
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(90px);
+    z-index: -1;
+    opacity: 0.35;
+    animation: floatOrb 30s infinite ease-in-out alternate;
+}
+
+body::before {
+    top: -10%; left: -10%;
+    width: 600px; height: 600px;
+    background: var(--accent-3);
+    animation-delay: 0s;
+}
+
+body::after {
+    bottom: -10%; right: -10%;
+    width: 700px; height: 700px;
+    background: var(--accent-2);
+    animation-delay: -7s;
+}
+
+.app-container::before {
+    top: 40%; left: 30%;
+    width: 500px; height: 500px;
+    background: var(--accent-1);
+    animation-delay: -14s;
+    opacity: 0.2;
+}
+
+@keyframes floatOrb {
+    0% { transform: translate(0, 0) scale(1) rotate(0deg); }
+    33% { transform: translate(60px, -90px) scale(1.1) rotate(15deg); }
+    66% { transform: translate(-40px, 50px) scale(0.9) rotate(-15deg); }
+    100% { transform: translate(0, 0) scale(1) rotate(0deg); }
 }
 
 .app-container {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 0 20px 40px;
+    padding: 0 20px 60px;
+    position: relative;
+    z-index: 2;
 }
 
 /* =============================================
@@ -40,89 +128,96 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 24px 0;
-    margin-bottom: 28px;
-    border-bottom: 1px solid #e5e7eb;
+    padding: 30px 0;
+    margin-bottom: 40px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .header-left {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 16px;
 }
 
 .logo-box {
-    width: 40px;
-    height: 40px;
-    background: linear-gradient(135deg, var(--warning), #d97706);
-    border-radius: 10px;
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(135deg, var(--warning) 0%, #ea580c 100%);
+    border-radius: 14px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 20px;
-    box-shadow: 0 4px 10px rgba(245, 158, 11, 0.3);
+    font-size: 24px;
+    box-shadow: 0 8px 20px rgba(245, 158, 11, 0.4), inset 0 2px 2px rgba(255,255,255,0.4);
 }
 
 .app-header h1 {
-    font-size: 24px;
+    font-size: 28px;
     font-weight: 700;
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    letter-spacing: -0.02em;
+    background: linear-gradient(135deg, #fff, #93c5fd);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
 }
 
 .badge {
-    background-color: #e0e7ff;
-    color: var(--primary-dark);
-    padding: 6px 14px;
+    background: rgba(139, 92, 246, 0.15);
+    color: #c4b5fd;
+    border: 1px solid rgba(139, 92, 246, 0.3);
+    padding: 6px 16px;
     border-radius: 20px;
     font-weight: 600;
     font-size: 14px;
+    letter-spacing: 0.02em;
+    backdrop-filter: blur(10px);
 }
 
 /* =============================================
-   STATE SCREENS (loading / empty)
+   STATE SCREENS
    ============================================= */
 .state-container {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 80px 20px;
+    padding: 100px 20px;
     text-align: center;
 }
 
 .spinner {
-    width: 40px;
-    height: 40px;
-    border: 4px solid #e5e7eb;
-    border-top-color: var(--primary);
+    width: 48px;
+    height: 48px;
+    border: 3px solid rgba(255, 255, 255, 0.1);
+    border-top-color: var(--accent-2);
     border-radius: 50%;
-    animation: spin 1s linear infinite;
-    margin-bottom: 20px;
+    animation: spin 1s cubic-bezier(0.68, -0.55, 0.265, 1.55) infinite;
+    margin-bottom: 24px;
 }
 
 @keyframes spin {
-    to {
-        transform: rotate(360deg);
-    }
+    to { transform: rotate(360deg); }
 }
 
 .empty-icon {
-    font-size: 64px;
-    margin-bottom: 16px;
-    opacity: 0.8;
+    font-size: 72px;
+    margin-bottom: 20px;
+    opacity: 0.9;
+    filter: drop-shadow(0 10px 20px rgba(0,0,0,0.5));
 }
 
 .state-container h2 {
-    font-size: 20px;
-    margin-bottom: 8px;
+    font-size: 24px;
+    margin-bottom: 10px;
+    color: var(--text-primary);
+    font-weight: 600;
 }
 
 .state-container p {
     color: var(--text-muted);
-    max-width: 400px;
+    max-width: 450px;
+    font-size: 16px;
 }
 
 /* =============================================
@@ -130,15 +225,14 @@ body {
    ============================================= */
 .flashcard-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    column-gap: 20px;
-    row-gap: 40px;
-    /* Tất cả card-wrapper cùng align-items: stretch (mặc định) → đều nhau */
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    column-gap: 25px;
+    row-gap: 45px;
     align-items: start;
 }
 
 /* =============================================
-   CARD WRAPPER (card + drawer)
+   CARD WRAPPER
    ============================================= */
 .card-wrapper {
     display: flex;
@@ -147,19 +241,25 @@ body {
     transition: z-index 0s;
 }
 
-/* Đảm bảo card đang mở drawer luôn nằm trên các card khác */
-.card-wrapper:has(.dict-drawer[data-open="true"]) {
-    z-index: 100;
-}
+.card-wrapper:has(.dict-drawer[data-open="true"]) { z-index: 100; }
 
 /* =============================================
-   3D FLIP CARD — Dùng position: absolute + pointer-events fix
+   3D FLIP CARD
    ============================================= */
 .flashcard {
     height: var(--card-height);
-    perspective: 1200px;
+    perspective: 1500px;
     cursor: pointer;
     position: relative;
+}
+
+.flashcard:hover .flashcard-inner {
+    box-shadow: 0 20px 50px -10px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+    transform: translateY(-5px);
+}
+
+.flashcard.flipped:hover .flashcard-inner {
+    transform: translateY(-5px) rotateY(180deg);
 }
 
 .flashcard-inner {
@@ -167,90 +267,81 @@ body {
     width: 100%;
     height: 100%;
     transform-style: preserve-3d;
-    transition: transform 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.3s ease;
+    border-radius: 20px;
 }
 
-.flashcard.flipped .flashcard-inner {
-    transform: rotateY(180deg);
-}
-
-/* *** BUG FIX: Mặt đang bị ẩn không được nhận click events *** */
-.flashcard:not(.flipped) .flashcard-back {
-    pointer-events: none;
-}
-
-.flashcard.flipped .flashcard-front {
-    pointer-events: none;
-}
+.flashcard.flipped .flashcard-inner { transform: rotateY(180deg); }
+.flashcard:not(.flipped) .flashcard-back { pointer-events: none; opacity: 0; transition: opacity 0.3s ease; }
+.flashcard.flipped .flashcard-front { pointer-events: none; opacity: 0; transition: opacity 0.3s ease; }
+.flashcard:not(.flipped) .flashcard-front { opacity: 1; transition: opacity 0.3s ease 0.2s;}
+.flashcard.flipped .flashcard-back { opacity: 1; transition: opacity 0.3s ease 0.2s; }
 
 .flashcard-front,
 .flashcard-back {
     position: absolute;
     inset: 0;
-    /* top:0 right:0 bottom:0 left:0 */
     -webkit-backface-visibility: hidden;
     backface-visibility: hidden;
-    border-radius: 16px;
-    padding: 12px 16px;
+    border-radius: 20px;
+    padding: 20px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    /* Căn giữa dọc */
-    gap: 8px;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.07);
-    border: 1px solid #e9eaf0;
+    gap: 12px;
+    box-shadow: var(--glass-shadow);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(25px);
+    -webkit-backdrop-filter: blur(25px);
     overflow: hidden;
 }
 
 .flashcard-front {
-    background: linear-gradient(160deg, #ffffff 60%, #f5f7ff);
+    background: var(--card-front-bg);
 }
 
 .flashcard-back {
     transform: rotateY(180deg);
-    background: linear-gradient(160deg, #eff6ff, #e0e7ff 80%);
-    border-color: #bfdbfe;
+    background: var(--card-back-bg);
+    border-color: var(--card-back-border);
 }
 
-/* Khi có drawer phía dưới VÀ đang xem mặt nghĩa — bỏ bo góc dưới card */
 .card-wrapper:has(.flashcard.flipped) .flashcard-front,
 .card-wrapper:has(.flashcard.flipped) .flashcard-back {
-    border-radius: 16px 16px 0 0;
+    border-radius: 20px 20px 0 0;
 }
 
-/* Dictionary drawer: chỉ hiện khi đang ở mặt nghĩa (flipped) */
 .dict-drawer {
     visibility: hidden;
     opacity: 0;
-    /* Khi ẩn: không delay */
     transition: opacity 0.15s ease 0s, visibility 0s ease 0.15s;
 }
 
 .card-wrapper:has(.flashcard.flipped) .dict-drawer {
     visibility: visible;
     opacity: 1;
-    /* Delay bằng thời gian flip (0.55s) để chỉ hiện SAU khi lật xong */
-    transition: opacity 0.2s ease 0.55s, visibility 0s ease 0.55s;
+    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1) 0.6s, visibility 0s ease 0.6s;
 }
 
 /* =============================================
    CARD CONTENT: FRONT
    ============================================= */
 .word-text {
-    font-size: 26px;
+    font-size: 32px;
     font-weight: 700;
-    color: var(--text-color);
+    color: var(--text-primary);
     word-break: break-word;
     text-align: center;
+    letter-spacing: -0.01em;
+    text-shadow: 0 4px 10px rgba(0,0,0,0.1);
 }
 
-/* Câu ví dụ — giới hạn 2 dòng */
 .example-container {
     width: 100%;
-    margin-top: 8px;
-    border-top: 1px dashed #d1d5db;
-    padding-top: 8px;
+    margin-top: 12px;
+    border-top: 1px solid var(--glass-border);
+    padding-top: 12px;
     position: relative;
     z-index: 30;
 }
@@ -258,202 +349,184 @@ body {
 .example-view {
     display: flex;
     align-items: flex-start;
-    gap: 8px;
+    gap: 10px;
     width: 100%;
 }
 
 .example-text {
-    font-size: 12px;
-    color: #4b5563;
+    font-size: 14px;
+    color: var(--text-muted);
     font-style: italic;
-    line-height: 1.4;
+    line-height: 1.5;
     text-align: left;
     flex: 1;
     display: -webkit-box;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
+    -webkit-line-clamp: 3;
+    line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
 
 .no-example {
-    color: #9ca3af;
-    font-size: 11px;
+    color: var(--text-muted);
+    opacity: 0.6;
+    font-size: 13px;
 }
 
 .btn-edit-example {
     background: none;
     border: none;
     cursor: pointer;
-    font-size: 12px;
-    opacity: 0.4;
-    padding: 2px;
-    transition: opacity 0.2s;
-    line-height: 1;
+    font-size: 14px;
+    color: var(--text-muted);
+    opacity: 0;
+    padding: 4px;
+    transition: all 0.3s;
 }
 
-.example-container:hover .btn-edit-example {
-    opacity: 1;
-}
+.flashcard:hover .btn-edit-example { opacity: 0.6; }
+.btn-edit-example:hover { opacity: 1 !important; color: var(--text-primary); transform: scale(1.1); }
 
-.example-edit {
-    width: 100%;
-}
+.example-edit { width: 100%; }
 
 .edit-example-input {
     width: 100%;
-    height: 60px;
-    font-size: 12px;
-    padding: 6px;
-    border: 1px solid var(--primary);
-    border-radius: 6px;
+    height: 70px;
+    font-size: 13px;
+    padding: 10px;
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
     resize: none;
     font-family: inherit;
-    margin-bottom: 6px;
-    background: #fff;
+    margin-bottom: 8px;
+    background: rgba(128, 128, 128, 0.05);
+    color: var(--text-primary);
+    box-shadow: inset 0 2px 5px rgba(0,0,0,0.05);
 }
+.edit-example-input:focus { outline: none; border-color: var(--accent-2); }
 
-.edit-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 6px;
-}
+.edit-actions { display: flex; justify-content: flex-end; gap: 8px; }
 
 .edit-actions button {
-    font-size: 10px;
-    padding: 3px 8px;
-    border-radius: 4px;
+    font-size: 11px;
+    padding: 6px 12px;
+    border-radius: 6px;
     cursor: pointer;
-    border: 1px solid #d1d5db;
-    background: #fff;
+    border: 1px solid var(--glass-border);
+    background: rgba(128, 128, 128, 0.05);
+    color: var(--text-primary);
+    font-family: inherit;
+    font-weight: 500;
     transition: all 0.2s;
 }
 
 .btn-save-example {
-    background-color: var(--primary) !important;
-    color: white;
-    border-color: var(--primary) !important;
+    background: linear-gradient(135deg, var(--accent-2), var(--secondary)) !important;
+    border: none !important;
+    color: white !important;
 }
-
-.btn-save-example:hover {
-    background-color: var(--primary-dark) !important;
-}
-
-.btn-cancel-example:hover {
-    background-color: #f3f4f6;
-}
+.btn-save-example:hover { box-shadow: 0 4px 12px rgba(0, 198, 255, 0.4); }
+.btn-cancel-example:hover { background: rgba(128, 128, 128, 0.15) !important; }
 
 .example-text strong {
-    color: var(--primary-dark);
-    font-weight: 700;
-    background: #e0e7ff;
-    padding: 0 3px;
-    border-radius: 3px;
+    color: var(--secondary);
+    font-weight: 600;
+    background: rgba(59, 130, 246, 0.1);
+    padding: 0 4px;
+    border-radius: 4px;
 }
 
-/* Link nguồn */
 .context-text {
-    font-size: 11px;
-    color: #9ca3af;
+    font-size: 12px;
+    color: var(--text-muted);
+    opacity: 0.6;
     font-style: italic;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     max-width: 100%;
+    display: block;
+    margin-top: 4px;
 }
 
 /* =============================================
    CARD CONTENT: BACK
    ============================================= */
 .trans-text {
-    font-size: 18px;
-    font-weight: 500;
-    color: #1e3a8a;
+    font-size: 24px;
+    font-weight: 600;
+    color: #93c5fd;
     line-height: 1.4;
     word-break: break-word;
     text-align: center;
+    text-shadow: 0 2px 10px rgba(147, 197, 253, 0.3);
 }
 
-/* =============================================
-   FLIP HINT
-   ============================================= */
 .flip-hint {
-    font-size: 11px;
-    color: #d1d5db;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.4);
     display: flex;
     align-items: center;
-    gap: 3px;
+    gap: 6px;
     position: absolute;
-    bottom: 8px;
+    bottom: 12px;
+    font-weight: 500;
 }
 
 /* =============================================
-   ACTION BUTTONS (Speak, Delete)
+   ACTION BUTTONS
    ============================================= */
 .card-actions {
     position: absolute;
-    top: 8px;
+    top: 12px;
     display: flex;
-    gap: 6px;
+    gap: 8px;
     z-index: 20;
 }
 
-.action-left {
-    left: 10px;
-}
-
-.action-right {
-    right: 10px;
-}
+.action-left { left: 12px; }
+.action-right { right: 12px; }
 
 .btn-icon {
-    background: rgba(255, 255, 255, 0.85);
-    border: 1px solid #e5e7eb;
+    background: rgba(128, 128, 128, 0.08);
+    border: 1px solid var(--glass-border);
+    color: var(--text-muted);
     border-radius: 50%;
-    width: 28px;
-    height: 28px;
+    width: 32px;
+    height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    font-size: 13px;
-    transition: all 0.18s;
-    backdrop-filter: blur(4px);
+    font-size: 14px;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    backdrop-filter: blur(10px);
 }
 
 .btn-icon:hover {
-    background: white;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
-    transform: scale(1.1);
+    background: rgba(128, 128, 128, 0.15);
+    color: var(--text-primary);
+    transform: scale(1.15);
 }
 
-.btn-icon.delete:hover {
-    color: var(--danger);
-    border-color: #fca5a5;
-    background: #fee2e2;
-}
-
-.btn-icon.speak:hover {
-    color: var(--primary);
-    border-color: #bfdbfe;
-    background: #eff6ff;
-}
+.btn-icon.delete:hover { border-color: rgba(239, 68, 68, 0.5); background: rgba(239, 68, 68, 0.2); color: #fca5a5; }
+.btn-icon.speak:hover { border-color: rgba(96, 165, 250, 0.5); background: rgba(96, 165, 250, 0.2); color: #93c5fd; }
 
 /* =============================================
    DICTIONARY DRAWER
    ============================================= */
 .dict-drawer {
-    background: white;
-    border: 1px solid #e5e7eb;
+    background: var(--card-bg);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
     border-top: none;
-    border-radius: 0 0 16px 16px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    border-radius: 0 0 20px 20px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
     overflow: hidden;
     position: absolute;
     top: calc(var(--card-height) - 1px);
-    /* Kết nối mượt với card */
-    left: 0;
-    right: 0;
+    left: 0; right: 0;
     z-index: 50;
 }
 
@@ -461,108 +534,93 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 6px;
-    padding: 7px 16px;
+    gap: 8px;
+    padding: 10px 16px;
     cursor: pointer;
-    background: linear-gradient(to right, #f8faff, #eff2ff);
-    border-top: 1px solid #e0e7ff;
+    background: rgba(128, 128, 128, 0.05);
+    border-top: 1px solid rgba(128, 128, 128, 0.1);
     user-select: none;
-    transition: background 0.2s;
+    transition: background 0.3s;
 }
 
-.dict-handle:hover {
-    background: #e0e7ff;
-}
+.dict-handle:hover { background: rgba(128, 128, 128, 0.1); }
 
 .dict-handle-icon {
     font-size: 10px;
-    color: var(--primary);
-    transition: transform 0.3s ease;
+    color: #93c5fd;
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 .dict-handle-text {
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 700;
-    color: var(--primary);
-    letter-spacing: 0.07em;
+    color: #93c5fd;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
 }
 
 .dict-panel {
     max-height: 0;
     overflow: hidden;
-    transition: max-height 0.38s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .dict-drawer[data-open="true"] .dict-panel {
-    max-height: 260px;
+    max-height: 280px;
     overflow-y: auto;
 }
 
-.dict-drawer[data-open="true"] .dict-handle-icon {
-    transform: rotate(180deg);
-}
+.dict-drawer[data-open="true"] .dict-handle-icon { transform: rotate(180deg); }
 
-.dict-panel::-webkit-scrollbar {
-    width: 4px;
-}
-
-.dict-panel::-webkit-scrollbar-thumb {
-    background: #d1d5db;
-    border-radius: 2px;
-}
+.dict-panel::-webkit-scrollbar { width: 6px; }
+.dict-panel::-webkit-scrollbar-thumb { background: rgba(128, 128, 128, 0.2); border-radius: 10px; }
 
 .dict-panel-inner {
-    padding: 10px 14px 14px;
+    padding: 16px 20px 20px;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 16px;
 }
 
-.dict-group {
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
-}
+.dict-group { display: flex; flex-direction: column; gap: 8px; }
 
 .dict-type-badge {
     display: inline-block;
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 700;
-    color: var(--primary-dark);
-    background: #e0e7ff;
-    padding: 1px 8px;
+    color: var(--secondary);
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    padding: 2px 10px;
     border-radius: 20px;
-    text-transform: capitalize;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
     width: fit-content;
 }
 
-.dict-meanings {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    padding-left: 4px;
-}
+.dict-meanings { display: flex; flex-direction: column; gap: 6px; padding-left: 6px; }
 
 .dict-item {
     display: flex;
     align-items: baseline;
-    gap: 6px;
-    font-size: 12px;
+    gap: 10px;
+    font-size: 14px;
     flex-wrap: wrap;
+    color: var(--text-primary);
 }
 
 .dict-word {
     font-weight: 600;
-    color: #111827;
-    background: #f3f4f6;
-    padding: 1px 5px;
-    border-radius: 4px;
-    border: 1px solid #e5e7eb;
+    color: var(--secondary);
+    background: rgba(59, 130, 246, 0.1);
+    padding: 2px 8px;
+    border-radius: 6px;
+    border: 1px solid rgba(59, 130, 246, 0.2);
 }
 
 .dict-related {
-    color: #6b7280;
-    font-size: 11px;
+    color: var(--text-muted);
+    opacity: 0.7;
+    font-size: 13px;
     font-style: italic;
 }

@@ -91,165 +91,246 @@ function createTranslateIcon() {
         const style = document.createElement('style');
         style.id = 'ai-translator-styles';
         style.textContent = `
+      .ai-translator-popup {
+        --ai-popup-bg: rgba(255, 255, 255, 0.95);
+        --ai-popup-text: #1f2937;
+        --ai-popup-border: rgba(0, 0, 0, 0.1);
+        --ai-popup-shadow: rgba(0, 0, 0, 0.15);
+        --ai-header-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        --ai-result-bg: rgba(0, 0, 0, 0.03);
+        --ai-result-border: rgba(0, 0, 0, 0.05);
+        --ai-btn-bg: #667eea;
+        --ai-btn-hover: #5568d3;
+        --ai-btn-text: #ffffff;
+      }
+
+      .ai-theme-dark {
+        --ai-popup-bg: rgba(20, 20, 25, 0.85);
+        --ai-popup-text: #f8fafc;
+        --ai-popup-border: rgba(255, 255, 255, 0.1);
+        --ai-popup-shadow: rgba(0, 0, 0, 0.5);
+        --ai-header-bg: linear-gradient(135deg, #7e22ce 0%, #3b82f6 100%);
+        --ai-result-bg: rgba(0, 0, 0, 0.4);
+        --ai-result-border: rgba(255, 255, 255, 0.05);
+        --ai-btn-bg: rgba(255, 255, 255, 0.1);
+        --ai-btn-hover: rgba(255, 255, 255, 0.2);
+        --ai-btn-text: #ffffff;
+      }
+
       .ai-translator-icon {
         position: absolute !important;
-        width: 32px !important; /* Slightly smaller to fit icon better */
+        width: 32px !important;
         height: 32px !important;
-        background: none !important; /* Transparent background */
-        box-shadow: none !important; /* No shadow */
+        background: none !important;
+        box-shadow: none !important;
         cursor: pointer !important;
         display: none !important;
         align-items: center !important;
         justify-content: center !important;
         z-index: 2147483647 !important;
-        transition: all 0.2s ease !important;
-        border: none !important; /* No border */
+        transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+        border: none !important;
         user-select: none !important;
         padding: 0 !important;
       }
       .ai-translator-icon img {
-        width: 32px !important; /* Full size image */
+        width: 32px !important;
         height: 32px !important;
-        filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2)); /* Add shadow to image instead */
+        filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3)) !important;
         pointer-events: none !important;
-        display: block !important;
       }
       .ai-translator-icon:hover {
-        transform: scale(1.1) !important;
-        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2) !important;
+        transform: scale(1.15) !important;
       }
+
       .ai-translator-popup {
         position: absolute !important;
-        width: 320px !important;
+        width: 360px !important;
         max-width: 90vw !important;
-        background: white !important;
-        border-radius: 12px !important;
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15) !important;
+        background: var(--ai-popup-bg) !important;
+        color: var(--ai-popup-text) !important;
+        border-radius: 16px !important;
+        box-shadow: 0 10px 30px var(--ai-popup-shadow), inset 0 1px 1px rgba(255,255,255,0.1) !important;
+        backdrop-filter: blur(20px) !important;
+        -webkit-backdrop-filter: blur(20px) !important;
         z-index: 2147483647 !important;
         display: none !important;
-        border: 1px solid #e5e7eb !important;
+        border: 1px solid var(--ai-popup-border) !important;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+        overflow: hidden !important;
+        opacity: 1 !important;
+        visibility: visible !important;
       }
+
       .ai-translator-popup-header {
         display: flex !important;
         justify-content: space-between !important;
         align-items: center !important;
-        padding: 12px 16px !important;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        padding: 14px 18px !important;
+        background: var(--ai-header-bg) !important;
         color: white !important;
-        border-radius: 12px 12px 0 0 !important;
       }
       .ai-translator-popup-title {
         font-weight: 600 !important;
-        font-size: 14px !important;
+        font-size: 15px !important;
+        letter-spacing: -0.01em !important;
       }
-      .ai-translator-popup-close {
+      
+      .ai-translator-popup-controls {
+        display: flex !important;
+        gap: 6px !important;
+        align-items: center !important;
+      }
+
+      .ai-translator-popup-icon-btn {
         background: none !important;
         border: none !important;
         color: white !important;
-        font-size: 24px !important;
         cursor: pointer !important;
         padding: 0 !important;
-        width: 24px !important;
-        height: 24px !important;
+        width: 28px !important;
+        height: 28px !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
-        border-radius: 4px !important;
-      }
-      .ai-translator-popup-close:hover {
-        background: rgba(255, 255, 255, 0.2) !important;
-      }
-      .ai-translator-popup-speak-header {
-        background: none !important;
-        border: none !important;
-        color: white !important;
-        font-size: 16px !important;
-        cursor: pointer !important;
-        padding: 0 !important;
-        width: 24px !important;
-        height: 24px !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        border-radius: 4px !important;
+        border-radius: 6px !important;
         transition: all 0.2s !important;
       }
-      .ai-translator-popup-speak-header:hover {
+      .ai-translator-popup-icon-btn:hover {
         background: rgba(255, 255, 255, 0.2) !important;
       }
       .ai-translator-popup-speak-header.playing {
         color: #fcd34d !important;
         animation: ai-pulse-header 1s infinite alternate !important;
       }
+      
       @keyframes ai-pulse-header {
-        from { opacity: 1; text-shadow: 0 0 5px rgba(252, 211, 77, 0.5); }
-        to { opacity: 0.6; text-shadow: 0 0 10px rgba(252, 211, 77, 0); }
+        from { opacity: 1; filter: drop-shadow(0 0 4px rgba(252, 211, 77, 0.6)); }
+        to { opacity: 0.7; filter: drop-shadow(0 0 0 rgba(252, 211, 77, 0)); }
       }
+
+      .ai-spinner {
+        width: 14px !important;
+        height: 14px !important;
+        border: 2px solid rgba(128, 128, 128, 0.3) !important;
+        border-top-color: var(--ai-popup-text) !important;
+        border-radius: 50% !important;
+        animation: ai-spin 0.6s linear infinite !important;
+        display: inline-block !important;
+      }
+      @keyframes ai-spin {
+        to { transform: rotate(360deg); }
+      }
+
       .ai-translator-popup-content {
         padding: 16px !important;
       }
+
       .ai-translator-popup-result {
-        padding: 12px !important;
-        background: #f9fafb !important;
-        border-radius: 8px !important;
+        padding: 14px !important;
+        background: var(--ai-result-bg) !important;
+        border: 1px solid var(--ai-result-border) !important;
+        border-radius: 12px !important;
         font-size: 14px !important;
         line-height: 1.5 !important;
-        color: #1f2937 !important;
+        color: var(--ai-popup-text) !important;
         min-height: 60px !important;
         max-height: 300px !important;
         overflow-y: auto !important;
         white-space: pre-wrap !important;
+        box-shadow: inset 0 2px 4px rgba(0,0,0,0.05) !important;
       }
-      .ai-translator-popup-result::-webkit-scrollbar {
-        width: 6px !important;
+      .ai-translator-popup-result::-webkit-scrollbar { width: 6px !important; }
+      .ai-translator-popup-result::-webkit-scrollbar-thumb { background: rgba(150,150,150,0.4) !important; border-radius: 3px !important; }
+
+      .ai-translator-popup-source {
+        font-size: 10px !important;
+        color: var(--ai-popup-text) !important;
+        opacity: 0.5 !important;
+        font-style: italic !important;
+        text-align: right !important;
+        margin-top: 8px !important;
+        padding-right: 4px !important;
       }
-      .ai-translator-popup-result::-webkit-scrollbar-track {
-        background: transparent !important;
-      }
-      .ai-translator-popup-result::-webkit-scrollbar-thumb {
-        background: #d1d5db !important;
-        border-radius: 3px !important;
-      }
-      .ai-translator-popup-result::-webkit-scrollbar-thumb:hover {
-        background: #9ca3af !important;
-      }
+
       .ai-translator-popup-actions {
         display: flex !important;
         gap: 8px !important;
         margin-top: 12px !important;
       }
+
       .ai-translator-popup-btn {
         flex: 1 !important;
-        padding: 8px 16px !important;
-        border: none !important;
-        border-radius: 6px !important;
-        font-size: 13px !important;
-        font-weight: 500 !important;
+        padding: 6px 10px !important;
+        border: 1px solid rgba(128, 128, 128, 0.15) !important;
+        border-radius: 12px !important;
+        font-size: 12px !important;
+        font-weight: 600 !important;
         cursor: pointer !important;
-        background: #667eea !important;
-        color: white !important;
+        background: rgba(128, 128, 128, 0.05) !important;
+        color: var(--ai-popup-text) !important;
+        transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 4px !important;
+        min-width: 0 !important;
+        white-space: nowrap !important;
       }
+      .ai-theme-dark .ai-translator-popup-btn {
+        background: rgba(255, 255, 255, 0.05) !important;
+      }
+      
       .ai-translator-popup-btn:hover {
-        background: #5568d3 !important;
+        background: rgba(128, 128, 128, 0.15) !important;
+        transform: translateY(-2px) !important;
       }
+      .ai-theme-dark .ai-translator-popup-btn:hover {
+        background: rgba(255, 255, 255, 0.1) !important;
+      }
+      
+      .ai-translator-popup-btn#ai-translator-popup-save {
+        color: #d97706 !important;
+        border-color: rgba(245, 158, 11, 0.3) !important;
+        background: rgba(245, 158, 11, 0.05) !important;
+      }
+      .ai-theme-dark .ai-translator-popup-btn#ai-translator-popup-save {
+        color: #fcd34d !important;
+      }
+      .ai-translator-popup-btn#ai-translator-popup-save:hover {
+        background: rgba(245, 158, 11, 0.15) !important;
+        box-shadow: 0 4px 12px rgba(245, 158, 11, 0.1) !important;
+      }
+      
+      .ai-translator-popup-btn#ai-translator-popup-ai {
+        color: #059669 !important;
+        border-color: rgba(16, 185, 129, 0.3) !important;
+        background: rgba(16, 185, 129, 0.05) !important;
+      }
+      .ai-theme-dark .ai-translator-popup-btn#ai-translator-popup-ai {
+        color: #34d399 !important;
+      }
+      .ai-translator-popup-btn#ai-translator-popup-ai:hover {
+        background: rgba(16, 185, 129, 0.15) !important;
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.1) !important;
+      }
+
       .ai-dict-container {
         margin-top: 12px !important;
-        border-top: 1px solid #e5e7eb !important;
+        border-top: 1px solid var(--ai-result-border) !important;
         padding-top: 12px !important;
         display: flex !important;
         flex-direction: column !important;
         gap: 12px !important;
       }
-      .ai-dict-group {
-        display: flex !important;
-        flex-direction: column !important;
-        gap: 6px !important;
-      }
+      .ai-dict-group { display: flex !important; flex-direction: column !important; gap: 6px !important; }
       .ai-dict-type {
-        font-size: 12px !important;
-        color: #6b7280 !important;
-        font-weight: 500 !important;
-        text-transform: capitalize !important;
+        font-size: 11px !important;
+        color: var(--ai-popup-text) !important;
+        opacity: 0.7 !important;
+        font-weight: 600 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.05em !important;
       }
       .ai-dict-item {
         display: flex !important;
@@ -259,15 +340,17 @@ function createTranslateIcon() {
         line-height: 1.4 !important;
       }
       .ai-dict-badge {
-        background: #111827 !important;
+        background: var(--ai-header-bg) !important;
         color: white !important;
         padding: 2px 8px !important;
-        border-radius: 4px !important;
+        border-radius: 6px !important;
         font-weight: 600 !important;
         white-space: nowrap !important;
+        border: 1px solid rgba(255,255,255,0.2) !important;
       }
       .ai-dict-related {
-        color: #4b5563 !important;
+        color: var(--ai-popup-text) !important;
+        opacity: 0.6 !important;
         padding-top: 2px !important;
       }
     `;
@@ -344,19 +427,23 @@ function createTranslatePopup() {
     translatePopup.innerHTML = `
     <div class="ai-translator-popup-header">
       <span class="ai-translator-popup-title">AI Translator</span>
-      <div style="display: flex; gap: 8px; align-items: center;">
-        <button class="ai-translator-popup-speak-header" id="ai-translator-popup-speak" title="Listen" style="display: none;">
+      <div class="ai-translator-popup-controls">
+        <button class="ai-translator-popup-icon-btn" id="ai-translator-popup-theme" title="Toggle Dark/Light Mode">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-moon"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+        </button>
+        <button class="ai-translator-popup-icon-btn ai-translator-popup-speak-header" id="ai-translator-popup-speak" title="Listen" style="display: none;">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path><path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path></svg>
         </button>
-        <button class="ai-translator-popup-close" id="ai-translator-popup-close">×</button>
+        <button class="ai-translator-popup-icon-btn" id="ai-translator-popup-close" style="font-size:22px; font-weight: 400;">×</button>
       </div>
     </div>
     <div class="ai-translator-popup-content">
       <div class="ai-translator-popup-result" id="ai-translator-popup-result">Translation will appear here...</div>
+      <div id="ai-translator-popup-source" class="ai-translator-popup-source"></div>
       <div class="ai-translator-popup-actions">
         <button class="ai-translator-popup-btn" id="ai-translator-popup-copy">Copy</button>
-        <button class="ai-translator-popup-btn" id="ai-translator-popup-save" style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important; color: white !important;">⭐️ Save</button>
-        <button class="ai-translator-popup-btn" id="ai-translator-popup-ai" style="display: none; background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;">✨ Translate with AI</button>
+        <button class="ai-translator-popup-btn" id="ai-translator-popup-save">⭐️ Save</button>
+        <button class="ai-translator-popup-btn" id="ai-translator-popup-ai" style="display: none;">✨ AI Translate</button>
       </div>
     </div>
   `;
@@ -373,6 +460,53 @@ function createTranslatePopup() {
     document
         .getElementById('ai-translator-popup-speak')
         .addEventListener('click', speakPopupText);
+
+    // Theme toggle and sync
+    function setContentTheme(theme) {
+        // Default to dark since dark is the default premium theme
+        const isDark = theme !== 'light'; 
+        const svgBtn = document.getElementById('ai-translator-popup-theme');
+        
+        if (!svgBtn) return;
+        
+        if (isDark) {
+            translatePopup.classList.add('ai-theme-dark');
+            svgBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>';
+        } else {
+            translatePopup.classList.remove('ai-theme-dark');
+            svgBtn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>';
+        }
+    }
+
+    document
+        .getElementById('ai-translator-popup-theme')
+        .addEventListener('click', () => {
+            const isDark = translatePopup.classList.contains('ai-theme-dark');
+            const newTheme = isDark ? 'light' : 'dark';
+            chrome.storage.local.set({ globalTheme: newTheme });
+            setContentTheme(newTheme); // Apply locally immediately
+        });
+        
+    // Listen for storage changes from other tabs/popups
+    const themeStorageListener = (changes) => {
+        if (changes.globalTheme && document.getElementById('ai-translator-popup-theme')) {
+            setContentTheme(changes.globalTheme.newValue);
+        }
+    };
+    chrome.storage.onChanged.addListener(themeStorageListener);
+    
+    // Add listener removal on close so we don't leak listeners
+    const originalCloseBtn = document.getElementById('ai-translator-popup-close');
+    originalCloseBtn.addEventListener('click', () => {
+        chrome.storage.onChanged.removeListener(themeStorageListener);
+    });
+        
+    // Load saved theme initially
+    chrome.storage.local.get(['globalTheme'], (data) => {
+        const defaultTheme = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+        const theme = data.globalTheme || defaultTheme;
+        setContentTheme(theme);
+    });
 
     // Save Flashcard listener
     document
@@ -421,7 +555,7 @@ function createTranslatePopup() {
 
             resultDiv.textContent = 'Translating with AI...';
             aiBtn.disabled = true;
-            aiBtn.textContent = 'Processing...';
+            aiBtn.innerHTML = '<div class="ai-spinner"></div> Translating...';
 
             try {
                 const { apiKey, savedTargetLang } = await chrome.storage.local.get([
@@ -437,12 +571,17 @@ function createTranslatePopup() {
                     true // forceAI
                 );
 
-                resultDiv.textContent = translationData.data || translationData; // Handle object or string
+                resultDiv.innerHTML = translationData.data || translationData; // Handle object or string
+                const sourceDiv = document.getElementById('ai-translator-popup-source');
+                if (sourceDiv) sourceDiv.textContent = 'Translated by Gemini AI';
+                
                 aiBtn.style.display = 'none'; // Hide button after success
+                aiBtn.disabled = false;
+                aiBtn.innerHTML = '✨ AI Translate';
             } catch (error) {
                 resultDiv.textContent = 'AI Translation failed: ' + error.message;
                 aiBtn.disabled = false;
-                aiBtn.textContent = '✨ Retry with AI';
+                aiBtn.innerHTML = '✨ AI Translate';
             }
         });
 
@@ -496,7 +635,7 @@ async function showTranslatePopup() {
     }
 
     // Position popup
-    const popupWidth = 320;
+    const popupWidth = 360;
     const popupHeight = 200;
 
     let top = rect.top + window.scrollY - popupHeight - 10;
@@ -530,9 +669,11 @@ async function showTranslatePopup() {
 
     // Reset UI state
     resultDiv.textContent = 'Translating...';
+    const sourceDiv = document.getElementById('ai-translator-popup-source');
+    if (sourceDiv) sourceDiv.textContent = '';
     aiBtn.style.display = 'none';
     aiBtn.disabled = false;
-    aiBtn.textContent = '✨ Translate with AI';
+    aiBtn.innerHTML = '✨ AI Translate';
     speakBtn.style.setProperty('display', 'none', 'important');
     speakBtn.classList.remove('playing');
     if (window.speechSynthesis) window.speechSynthesis.cancel();
@@ -596,14 +737,18 @@ async function showTranslatePopup() {
         }
 
         resultDiv.innerHTML = htmlContent;
-        speakBtn.style.setProperty('display', 'flex', 'important');
-
+        const sourceDiv = document.getElementById('ai-translator-popup-source');
+        
         // Show AI button if source is mymemory
         if (source === 'mymemory') {
+            if (sourceDiv) sourceDiv.textContent = 'Translated by MyMemory (Free API)';
             aiBtn.style.display = 'block';
             // Track MyMemory usage (chars)
             await trackMyMemoryUsage(lastSelectedText.length);
+        } else if (source === 'google_dict') {
+            if (sourceDiv) sourceDiv.textContent = 'Translated by Google Dictionary';
         } else {
+            if (sourceDiv) sourceDiv.textContent = 'Translated by Gemini AI';
             // Track AI usage (requests)
             await trackUsage('aiTranslateCount', 'aiTranslateLastDate');
         }
