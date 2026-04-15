@@ -3,14 +3,14 @@
 // Helper function to fetch with timeout
 async function fetchWithTimeout(resource, options = {}) {
     const { timeout = 8000 } = options;
-    
+
     const controller = new AbortController();
     const id = setTimeout(() => controller.abort(), timeout);
-    
+
     try {
         const response = await fetch(resource, {
             ...options,
-            signal: controller.signal
+            signal: controller.signal,
         });
         clearTimeout(id);
         return response;
@@ -18,6 +18,12 @@ async function fetchWithTimeout(resource, options = {}) {
         clearTimeout(id);
         throw error;
     }
+}
+
+// Helper: Get selected Gemini model from storage
+async function getGeminiModel() {
+    const data = await chrome.storage.local.get('geminiModel');
+    return data.geminiModel || 'gemini-3.5-flash';
 }
 
 // Helper function to translate text using Gemini API
@@ -46,8 +52,9 @@ Text to translate:
 ${text}`;
 
     try {
+        const model = await getGeminiModel();
         const response = await fetchWithTimeout(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${apiKey}`,
+            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
             {
                 method: 'POST',
                 headers: {
@@ -66,7 +73,7 @@ ${text}`;
                         maxOutputTokens: 1024, // Reduced from 2048 to speed up finalization
                     },
                 }),
-                timeout: 15000 // 15 seconds for AI
+                timeout: 15000, // 15 seconds for AI
             }
         );
 
@@ -265,8 +272,9 @@ Text to check:
 ${text}`;
 
     try {
+        const model = await getGeminiModel();
         const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${apiKey}`,
+            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
             {
                 method: 'POST',
                 headers: {
@@ -324,8 +332,9 @@ Rules:
 5. Do not add any formatting or additional text`;
 
     try {
+        const model = await getGeminiModel();
         const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent?key=${apiKey}`,
+            `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
             {
                 method: 'POST',
                 headers: {
@@ -582,7 +591,9 @@ function openDatabase() {
         request.onupgradeneeded = (event) => {
             const db = event.target.result;
             if (!db.objectStoreNames.contains(STORE_NAME)) {
-                const objectStore = db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+                const objectStore = db.createObjectStore(STORE_NAME, {
+                    keyPath: 'id',
+                });
                 objectStore.createIndex('createdAt', 'createdAt', { unique: false });
                 console.log('Object store created');
             }
@@ -604,7 +615,7 @@ async function addFlashcard(cardData) {
             context: cardData.context || '',
             example: cardData.example || '',
             dictionary: cardData.dictionary || [],
-            createdAt: new Date().toISOString()
+            createdAt: new Date().toISOString(),
         };
 
         const request = store.add(newCard);
@@ -646,25 +657,30 @@ async function updateFlashcard(id, updatedData) {
     return new Promise((resolve, reject) => {
         const transaction = db.transaction([STORE_NAME], 'readwrite');
         const store = transaction.objectStore(STORE_NAME);
-        
+
         // Get the existing card first
         const getRequest = store.get(id);
-        
+
         getRequest.onsuccess = () => {
             const card = getRequest.result;
             if (!card) {
                 reject('Card not found');
                 return;
             }
-            
+
             // Merge updated data
-            const newCard = { ...card, ...updatedData, updatedAt: new Date().toISOString() };
+            const newCard = {
+                ...card,
+                ...updatedData,
+                updatedAt: new Date().toISOString(),
+            };
             const putRequest = store.put(newCard);
-            
+
             putRequest.onsuccess = () => resolve(newCard);
-            putRequest.onerror = (e) => reject('Error updating card: ' + e.target.error);
+            putRequest.onerror = (e) =>
+                reject('Error updating card: ' + e.target.error);
         };
-        
+
         getRequest.onerror = (e) => reject('Error getting card: ' + e.target.error);
     });
 }
@@ -693,47 +709,44 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     // NEW: Flashcard DB Actions Processing
     else if (request.action === 'saveFlashcard') {
         (async () => {
-             try {
-                 const newCard = await addFlashcard(request.data);
-                 sendResponse({ success: true, data: newCard });
-             } catch (error) {
-                 sendResponse({ success: false, error: error.toString() });
-             }
+            try {
+                const newCard = await addFlashcard(request.data);
+                sendResponse({ success: true, data: newCard });
+            } catch (error) {
+                sendResponse({ success: false, error: error.toString() });
+            }
         })();
         return true;
-    } 
-    else if (request.action === 'getFlashcards') {
+    } else if (request.action === 'getFlashcards') {
         (async () => {
-             try {
-                 const cards = await getAllFlashcards();
-                 // Sort descending by date
-                 cards.sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
-                 sendResponse({ success: true, data: cards });
-             } catch (error) {
-                 sendResponse({ success: false, error: error.toString() });
-             }
+            try {
+                const cards = await getAllFlashcards();
+                // Sort descending by date
+                cards.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                sendResponse({ success: true, data: cards });
+            } catch (error) {
+                sendResponse({ success: false, error: error.toString() });
+            }
         })();
         return true;
-    }
-    else if (request.action === 'deleteFlashcard') {
+    } else if (request.action === 'deleteFlashcard') {
         (async () => {
-             try {
-                 await deleteFlashcard(request.id);
-                 sendResponse({ success: true });
-             } catch (error) {
-                 sendResponse({ success: false, error: error.toString() });
-             }
+            try {
+                await deleteFlashcard(request.id);
+                sendResponse({ success: true });
+            } catch (error) {
+                sendResponse({ success: false, error: error.toString() });
+            }
         })();
         return true;
-    }
-    else if (request.action === 'updateFlashcard') {
+    } else if (request.action === 'updateFlashcard') {
         (async () => {
-             try {
-                 const updatedCard = await updateFlashcard(request.id, request.data);
-                 sendResponse({ success: true, data: updatedCard });
-             } catch (error) {
-                 sendResponse({ success: false, error: error.toString() });
-             }
+            try {
+                const updatedCard = await updateFlashcard(request.id, request.data);
+                sendResponse({ success: true, data: updatedCard });
+            } catch (error) {
+                sendResponse({ success: false, error: error.toString() });
+            }
         })();
         return true;
     }
@@ -781,8 +794,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                                 return; // Stop here if dictionary succeeds
                             }
                         } catch (dictError) {
-                            console.log('Google Dictionary failed or timeout, moving to AI:', dictError.message);
-                            // If dictionary fails for short text, we might want to jump directly to AI 
+                            console.log(
+                                'Google Dictionary failed or timeout, moving to AI:',
+                                dictError.message
+                            );
+                            // If dictionary fails for short text, we might want to jump directly to AI
                             // because MyMemory is usually poor for single words
                         }
                     }
@@ -800,7 +816,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                             return;
                         }
                     } catch (mmError) {
-                        console.log('MyMemory failed or timeout, falling back to AI:', mmError.message);
+                        console.log(
+                            'MyMemory failed or timeout, falling back to AI:',
+                            mmError.message
+                        );
                     }
 
                     // Final Fallback to Gemini
@@ -821,7 +840,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 }
             } catch (e) {
                 console.error('[AI Translator] callTranslateAPI Error:', e);
-                sendResponse({ success: false, error: e.message || 'Internal error' });
+                sendResponse({
+                    success: false,
+                    error: e.message || 'Internal error',
+                });
             }
         })();
         return true;

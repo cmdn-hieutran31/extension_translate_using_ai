@@ -582,3 +582,33 @@ body::after {
   70% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(0, 198, 255, 0); }
   100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(0, 198, 255, 0); }
 }
+
+/* Model Badge */
+.model-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(0, 198, 255, 0.15), rgba(126, 34, 206, 0.15));
+  border: 1px solid rgba(0, 198, 255, 0.3);
+  color: var(--accent-2);
+  letter-spacing: 0.03em;
+  transition: all 0.25s ease;
+  white-space: nowrap;
+}
+
+.model-badge:hover {
+  background: linear-gradient(135deg, rgba(0, 198, 255, 0.25), rgba(126, 34, 206, 0.25));
+  border-color: rgba(0, 198, 255, 0.6);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 198, 255, 0.2);
+}
+
+:root[data-theme="light"] .model-badge {
+  background: linear-gradient(135deg, rgba(2, 132, 199, 0.1), rgba(126, 34, 206, 0.1));
+  border-color: rgba(2, 132, 199, 0.35);
+  color: var(--accent-2);
+}

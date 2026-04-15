@@ -26,6 +26,32 @@ const extractedTextSection = document.getElementById('extractedTextSection');
 const extractedText = document.getElementById('extractedText');
 const clearImageBtn = document.getElementById('clearImageBtn');
 const useExtractedBtn = document.getElementById('useExtractedBtn');
+const activeModelBadge = document.getElementById('activeModelBadge');
+
+// Model display names map
+const MODEL_DISPLAY_NAMES = {
+    'gemini-2.5-flash-preview-04-17': '2.5 Flash',
+    'gemini-2.5-pro-preview-03-25':   '2.5 Pro',
+    'gemini-2.0-flash':               '2.0 Flash',
+    'gemini-2.0-flash-lite':          '2.0 Flash Lite',
+    'gemini-1.5-flash':               '1.5 Flash',
+    'gemini-1.5-pro':                 '1.5 Pro',
+    'gemini-3.1-flash-lite-preview':  '3.1 Flash Lite',
+};
+
+function updateModelBadge(modelId) {
+    if (!activeModelBadge) return;
+    const name = MODEL_DISPLAY_NAMES[modelId] || modelId;
+    activeModelBadge.textContent = `⚡ ${name}`;
+    activeModelBadge.title = `Model đang dùng: ${modelId}\nClick để đổi trong Settings`;
+}
+
+// Click badge → mở Settings (CSP-safe, không dùng inline onclick)
+if (activeModelBadge) {
+    activeModelBadge.addEventListener('click', () => {
+        chrome.tabs.create({ url: 'settings.html' });
+    });
+}
 
 let currentImageData = null;
 
@@ -72,6 +98,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     const { savedTargetLang } = await chrome.storage.local.get('savedTargetLang');
     if (savedTargetLang) {
         targetLang.value = savedTargetLang;
+    }
+
+    // Load and display active model badge
+    const { geminiModel } = await chrome.storage.local.get('geminiModel');
+    updateModelBadge(geminiModel || 'gemini-2.0-flash');
+});
+
+// Listen for model changes from settings page
+chrome.storage.onChanged.addListener((changes) => {
+    if (changes.geminiModel) {
+        updateModelBadge(changes.geminiModel.newValue);
     }
 });
 

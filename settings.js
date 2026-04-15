@@ -4,6 +4,7 @@
 const apiKeyInput = document.getElementById('apiKey');
 const toggleApiKeyBtn = document.getElementById('toggleApiKey');
 const targetLangSelect = document.getElementById('targetLang');
+const geminiModelSelect = document.getElementById('geminiModel');
 const saveApiKeyBtn = document.getElementById('saveApiKey');
 const grammarCheckToggle = document.getElementById('grammarCheckEnabled');
 const inlineTranslationToggle = document.getElementById('inlineTranslationEnabled');
@@ -29,6 +30,7 @@ async function loadSettings() {
     const data = await chrome.storage.local.get([
       'apiKey',
       'savedTargetLang',
+      'geminiModel',
       'grammarCheckEnabled',
       'inlineTranslationEnabled',
     ]);
@@ -39,6 +41,10 @@ async function loadSettings() {
 
     if (data.savedTargetLang) {
       targetLangSelect.value = data.savedTargetLang;
+    }
+
+    if (data.geminiModel) {
+      geminiModelSelect.value = data.geminiModel;
     }
 
     if (data.grammarCheckEnabled !== undefined) {
@@ -166,8 +172,9 @@ function setupEventListeners() {
       await chrome.storage.local.set({
         apiKey: apiKey,
         savedTargetLang: targetLangSelect.value,
+        geminiModel: geminiModelSelect.value,
       });
-      showToast('API key saved successfully!', 'success');
+      showToast('Settings saved successfully!', 'success');
 
       // Notify all tabs to update
       chrome.tabs.query({}, (tabs) => {
@@ -182,6 +189,19 @@ function setupEventListeners() {
     } catch (error) {
       console.error('Failed to save API key:', error);
       showToast('Failed to save API key', 'error');
+    }
+  });
+
+  // Save model preference
+  geminiModelSelect.addEventListener('change', async () => {
+    try {
+      await chrome.storage.local.set({
+        geminiModel: geminiModelSelect.value,
+      });
+      const selectedText = geminiModelSelect.options[geminiModelSelect.selectedIndex].text;
+      showToast(`Model đã đổi: ${selectedText}`, 'success');
+    } catch (error) {
+      console.error('Failed to save model:', error);
     }
   });
 
