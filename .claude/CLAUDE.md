@@ -93,10 +93,10 @@ Stored as `geminiModel` in `chrome.storage.local`. Options: `gemini-2.5-pro-prev
 ## Keyboard Shortcuts
 
 Defined in `manifest.json` under `commands`:
-- `Alt+T` — Translate selected text
-- `Alt+G` — Grammar check selected text  
-- `Alt+F` — Open flashcards page
-- `Alt+S` — Open settings page
+- `Alt+Shift+T` — Translate selected text
+- `Alt+Shift+G` — Grammar check selected text  
+- `Alt+Shift+F` — Open flashcards page
+- `Alt+Shift+S` — Open settings page
 
 ## UI Conventions
 
