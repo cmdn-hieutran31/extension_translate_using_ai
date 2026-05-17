@@ -12,39 +12,41 @@
   ],
   "host_permissions": [
     "https://generativelanguage.googleapis.com/*",
-    "https://api.mymemory.translated.net/*"
+    "https://api.mymemory.translated.net/*",
+    "https://translate.googleapis.com/*",
+    "https://api.languagetool.org/*"
   ],
   "action": {
-    "default_popup": "popup.html",
+    "default_popup": "pages/popup/popup.html",
     "default_icon": {
-      "16": "icons/icon16.png",
-      "24": "icons/icon24.png",
-      "32": "icons/icon32.png",
-      "48": "icons/icon48.png",
-      "128": "icons/icon128.png"
+      "16": "assets/icons/icon16.png",
+      "24": "assets/icons/icon24.png",
+      "32": "assets/icons/icon32.png",
+      "48": "assets/icons/icon48.png",
+      "128": "assets/icons/icon128.png"
     }
   },
   "icons": {
-    "16": "icons/icon16.png",
-    "24": "icons/icon24.png",
-    "32": "icons/icon32.png",
-    "48": "icons/icon48.png",
-    "128": "icons/icon128.png"
+    "16": "assets/icons/icon16.png",
+    "24": "assets/icons/icon24.png",
+    "32": "assets/icons/icon32.png",
+    "48": "assets/icons/icon48.png",
+    "128": "assets/icons/icon128.png"
   },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["content.js"]
+      "js": ["src/content.js"]
     }
   ],
   "web_accessible_resources": [
     {
-      "resources": ["icons/*.png", "settings.html"],
+      "resources": ["assets/icons/*.png", "pages/settings/settings.html"],
       "matches": ["<all_urls>"]
     }
   ],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "src/background.js"
   },
   "commands": {
     "translate-selection": {

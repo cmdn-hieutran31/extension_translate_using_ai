@@ -42,9 +42,27 @@ function extractContextSentence(selection, selectedText) {
 // Feature flags - defaults to true
 let grammarCheckEnabled = true;
 let inlineTranslationEnabled = true;
+let hoverTranslationEnabled = true;
 
 // Grammar check state
-let grammarTimeouts = new Map();
+let grammarTimeouts = new WeakMap();
+
+// Hover translation state
+let currentTheme = 'dark';
+let hoverTooltip = null;
+let hoverDebounceTimer = null;
+let lastHoveredWord = '';
+let currentHoveredElement = null;
+let hoverCache = new Map(); // sentence → { data, timestamp }
+
+function escapeHtml(str) {
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
 
 // ========== SETTINGS LOADING ==========
 
@@ -53,6 +71,8 @@ async function loadSettings() {
         const data = await chrome.storage.local.get([
             'grammarCheckEnabled',
             'inlineTranslationEnabled',
+            'hoverTranslationEnabled',
+            'globalTheme',
         ]);
         grammarCheckEnabled =
             data.grammarCheckEnabled !== undefined ? data.grammarCheckEnabled : true;
@@ -60,14 +80,29 @@ async function loadSettings() {
             data.inlineTranslationEnabled !== undefined
                 ? data.inlineTranslationEnabled
                 : true;
+        hoverTranslationEnabled =
+            data.hoverTranslationEnabled !== undefined
+                ? data.hoverTranslationEnabled
+                : true;
+        const systemDefault = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+        currentTheme = data.globalTheme || systemDefault;
         console.log('[AI Translator] Settings loaded:', {
             grammarCheckEnabled,
             inlineTranslationEnabled,
+            hoverTranslationEnabled,
+            currentTheme,
         });
     } catch (error) {
         console.error('[AI Translator] Failed to load settings:', error);
     }
 }
+
+// Keep currentTheme in sync when user toggles theme anywhere
+chrome.storage.onChanged.addListener((changes) => {
+    if (changes.globalTheme) {
+        currentTheme = changes.globalTheme.newValue;
+    }
+});
 
 // ========== TRANSLATE ICON ==========
 
@@ -84,7 +119,7 @@ function createTranslateIcon() {
     translateIcon.id = 'ai-translator-icon';
     translateIcon.className = 'ai-translator-icon';
     // Use icon file from extension
-    translateIcon.innerHTML = `<img src="${chrome.runtime.getURL('icons/icon24.png')}" alt="Translate" style="width: 20px; height: 20px; pointer-events: none;">`;
+    translateIcon.innerHTML = `<img src="${chrome.runtime.getURL('assets/icons/icon24.png')}" alt="Translate" style="width: 20px; height: 20px; pointer-events: none;">`;
 
     // Add styles via style tag
     if (!document.getElementById('ai-translator-styles')) {
@@ -353,6 +388,74 @@ function createTranslateIcon() {
         opacity: 0.6 !important;
         padding-top: 2px !important;
       }
+
+      /* ===== HOVER TOOLTIP ===== */
+      .ai-hover-tooltip {
+        --ai-popup-bg: rgba(255, 255, 255, 0.95);
+        --ai-popup-text: #1f2937;
+        --ai-popup-border: rgba(0, 0, 0, 0.1);
+        --ai-popup-shadow: rgba(0, 0, 0, 0.15);
+        --ai-result-border: rgba(0, 0, 0, 0.05);
+        position: absolute !important;
+        width: max-content !important;
+        min-width: 160px !important;
+        max-width: 360px !important;
+        background: var(--ai-popup-bg) !important;
+        color: var(--ai-popup-text) !important;
+        border: 1px solid var(--ai-popup-border) !important;
+        border-radius: 10px !important;
+        box-shadow: 0 8px 24px var(--ai-popup-shadow) !important;
+        backdrop-filter: blur(16px) !important;
+        -webkit-backdrop-filter: blur(16px) !important;
+        z-index: 2147483647 !important;
+        padding: 10px 12px !important;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+        font-size: 13px !important;
+        line-height: 1.5 !important;
+        pointer-events: auto !important;
+        display: none !important;
+        animation: ai-hover-fadein 0.15s ease-out !important;
+      }
+      @keyframes ai-hover-fadein {
+        from { opacity: 0; transform: translateY(4px); }
+        to   { opacity: 1; transform: translateY(0); }
+      }
+      .ai-hover-tooltip-word {
+        font-size: 11px !important;
+        opacity: 0.5 !important;
+        font-weight: 500 !important;
+        margin-bottom: 4px !important;
+        letter-spacing: 0.02em !important;
+      }
+      .ai-hover-tooltip-translation {
+        font-weight: 400 !important;
+        font-size: 13px !important;
+        line-height: 1.6 !important;
+        color: var(--ai-popup-text) !important;
+      }
+      .ai-hover-tooltip-dict {
+        margin-top: 8px !important;
+        padding-top: 8px !important;
+        border-top: 1px solid var(--ai-result-border) !important;
+        display: flex !important;
+        flex-direction: column !important;
+        gap: 4px !important;
+      }
+      .ai-hover-tooltip-dict-type {
+        font-size: 10px !important;
+        opacity: 0.5 !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.05em !important;
+        font-weight: 600 !important;
+      }
+      .ai-hover-tooltip-dict-words {
+        font-size: 12px !important;
+        opacity: 0.85 !important;
+      }
+      .ai-hover-tooltip-loading {
+        opacity: 0.5 !important;
+        font-style: italic !important;
+      }
     `;
         document.head.appendChild(style);
     }
@@ -494,12 +597,7 @@ function createTranslatePopup() {
         }
     };
     chrome.storage.onChanged.addListener(themeStorageListener);
-    
-    // Add listener removal on close so we don't leak listeners
-    const originalCloseBtn = document.getElementById('ai-translator-popup-close');
-    originalCloseBtn.addEventListener('click', () => {
-        chrome.storage.onChanged.removeListener(themeStorageListener);
-    });
+    translatePopup._themeStorageListener = themeStorageListener;
         
     // Load saved theme initially
     chrome.storage.local.get(['globalTheme'], (data) => {
@@ -507,6 +605,8 @@ function createTranslatePopup() {
         const theme = data.globalTheme || defaultTheme;
         setContentTheme(theme);
     });
+
+    translatePopup._setContentTheme = setContentTheme;
 
     // Save Flashcard listener
     document
@@ -663,6 +763,17 @@ async function showTranslatePopup() {
         console.log('[AI Translator] Popup can now be closed by clicking outside');
     }, 300);
 
+    // Re-attach theme storage listener each time popup opens (was removed on close)
+    if (translatePopup._setContentTheme && !translatePopup._themeStorageListener) {
+        const listener = (changes) => {
+            if (changes.globalTheme && translatePopup._setContentTheme) {
+                translatePopup._setContentTheme(changes.globalTheme.newValue);
+            }
+        };
+        chrome.storage.onChanged.addListener(listener);
+        translatePopup._themeStorageListener = listener;
+    }
+
     const resultDiv = document.getElementById('ai-translator-popup-result');
     const aiBtn = document.getElementById('ai-translator-popup-ai');
     const speakBtn = document.getElementById('ai-translator-popup-speak');
@@ -701,23 +812,23 @@ async function showTranslatePopup() {
                 // Capture dictionary data for save flashcard
                 lastDictionaryData = resData.dictionary || [];
                 // Render Dictionary UI
-                htmlContent = `<div style="font-weight: 500; font-size: 15px; margin-bottom: 8px;">✨ ${resData.translation}</div>`;
+                htmlContent = `<div style="font-weight: 500; font-size: 15px; margin-bottom: 8px;">✨ ${escapeHtml(resData.translation)}</div>`;
 
                 if (resData.dictionary.length > 0) {
                     htmlContent += `<div class="ai-dict-container">`;
                     resData.dictionary.forEach((group) => {
                         htmlContent += `
                              <div class="ai-dict-group">
-                                 <div class="ai-dict-type">${group.type}</div>
+                                 <div class="ai-dict-type">${escapeHtml(group.type)}</div>
                          `;
                         group.meanings.forEach((item) => {
                             const relatedText =
                                 item.related && item.related.length > 0
-                                    ? `<div class="ai-dict-related">- ${item.related.join(', ')}</div>`
+                                    ? `<div class="ai-dict-related">- ${escapeHtml(item.related.join(', '))}</div>`
                                     : '';
                             htmlContent += `
                                  <div class="ai-dict-item">
-                                     <div class="ai-dict-badge">${item.word}</div>
+                                     <div class="ai-dict-badge">${escapeHtml(item.word)}</div>
                                      ${relatedText}
                                  </div>
                              `;
@@ -770,6 +881,10 @@ function hideTranslatePopup() {
         const speakBtn = document.getElementById('ai-translator-popup-speak');
         if (speakBtn) {
             speakBtn.classList.remove('playing');
+        }
+        if (translatePopup._themeStorageListener) {
+            chrome.storage.onChanged.removeListener(translatePopup._themeStorageListener);
+            translatePopup._themeStorageListener = null;
         }
     }
 }
@@ -1061,7 +1176,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         }
         sendResponse({ success: true });
     } else if (request.action === 'checkGrammarFromShortcut') {
-        const text = window.getSelection().toString().trim();
+        const text = window.getSelection().toString().trim() || lastSelectedText;
         handleGrammarCheck(text);
         sendResponse({ success: true });
     } else if (request.action === 'settingsUpdated') {
@@ -1158,12 +1273,13 @@ function showNotification(title, message) {
     <div style="display: flex; align-items: flex-start; gap: 16px;">
       <div style="font-size: 20px; background: ${isSuccess ? '#d1fae5' : '#fee2e2'}; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: ${iconColor}; flex-shrink: 0;">${icon}</div>
       <div style="flex: 1;">
-        <div style="font-weight: 600; color: #111827; margin-bottom: 4px; font-size: 15px; font-family: sans-serif;">${title}</div>
-        <div style="color: #6b7280; font-size: 14px; line-height: 1.4; font-family: sans-serif;">${message}</div>
+        <div style="font-weight: 600; color: #111827; margin-bottom: 4px; font-size: 15px; font-family: sans-serif;">${escapeHtml(title)}</div>
+        <div style="color: #6b7280; font-size: 14px; line-height: 1.4; font-family: sans-serif;">${escapeHtml(message)}</div>
       </div>
-      <button onclick="this.closest('#ai-notification').remove()" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #9ca3af; padding: 0; line-height: 1; margin-left: 8px;">×</button>
+      <button class="ai-notification-close" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #9ca3af; padding: 0; line-height: 1; margin-left: 8px;">×</button>
     </div>
   `;
+    notification.querySelector('.ai-notification-close').addEventListener('click', () => notification.remove());
 
     Object.assign(notification.style, {
         position: 'fixed',
@@ -1241,11 +1357,24 @@ function showGrammarDiff(original, corrected, source = 'languagetool') {
 
     const dialog = document.createElement('div');
     dialog.id = 'ai-grammar-diff';
+
+    // Full-screen backdrop — clicking outside the card closes the modal
+    Object.assign(dialog.style, {
+        position: 'fixed',
+        inset: '0',
+        zIndex: '2147483646',
+        background: 'rgba(0, 0, 0, 0.5)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '16px',
+    });
+
     dialog.innerHTML = `
-    <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; border-radius: 12px; padding: 24px; max-width: 600px; width: 90%; max-height: 80vh; overflow: auto; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2); z-index: 2147483647; color: #1f2937; font-family: sans-serif;">
+    <div id="ai-grammar-diff-card" style="background: white; border-radius: 12px; padding: 24px; max-width: 600px; width: 100%; max-height: 80vh; overflow: auto; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3); color: #1f2937; font-family: sans-serif; position: relative;">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
         <h2 style="margin: 0; font-size: 18px; color: #1f2937;">Grammar Suggestions ${isAI ? '<span style="font-size: 12px; background: #dbeafe; color: #1e40af; padding: 2px 6px; border-radius: 4px; vertical-align: middle;">AI Powered</span>' : ''}</h2>
-        <button onclick="this.closest('#ai-grammar-diff').remove()" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #6b7280;">×</button>
+        <button id="ai-grammar-close-btn" style="background: none; border: none; font-size: 24px; cursor: pointer; color: #6b7280;">×</button>
       </div>
       <div style="margin-bottom: 16px;">
         <div style="font-size: 13px; font-weight: 600; color: #dc2626; margin-bottom: 8px;">Original (Changes marked):</div>
@@ -1258,12 +1387,20 @@ function showGrammarDiff(original, corrected, source = 'languagetool') {
       <div style="display: flex; gap: 12px;">
         <button id="ai-copy-corrected" style="flex: 1; padding: 12px; background: #22c55e; color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;">Copy Corrected</button>
         ${aiButtonHtml}
-        <button onclick="this.closest('#ai-grammar-diff').remove()" style="flex: 1; padding: 12px; background: #e5e7eb; color: #374151; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;">Close</button>
+        <button id="ai-grammar-close-btn2" style="flex: 1; padding: 12px; background: #e5e7eb; color: #374151; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;">Close</button>
       </div>
     </div>
   `;
 
     document.body.appendChild(dialog);
+
+    // Close on backdrop click (click outside the card)
+    dialog.addEventListener('click', (e) => {
+        if (e.target === dialog) dialog.remove();
+    });
+
+    dialog.querySelector('#ai-grammar-close-btn').addEventListener('click', () => dialog.remove());
+    dialog.querySelector('#ai-grammar-close-btn2').addEventListener('click', () => dialog.remove());
 
     document
         .getElementById('ai-copy-corrected')
@@ -1414,15 +1551,13 @@ function showGrammarIndicator(element, original, corrected, source) {
     indicator.innerHTML = '✨'; // Changed from 📝 to ✨
     indicator.title = 'AI Grammar Suggestion Available';
 
-    // Position relative to input
+    // Position fixed so it stays anchored even when page is scrolled
     const rect = element.getBoundingClientRect();
-    const scrollTop = window.scrollY || document.documentElement.scrollTop;
-    const scrollLeft = window.scrollX || document.documentElement.scrollLeft;
 
     Object.assign(indicator.style, {
-        position: 'absolute',
-        top: `${rect.top + scrollTop + 4}px`,
-        left: `${rect.right + scrollLeft - 30}px`, // Inside right edge
+        position: 'fixed',
+        top: `${rect.top + 4}px`,
+        left: `${rect.right - 30}px`,
         cursor: 'pointer',
         fontSize: '16px',
         zIndex: '2147483647',
@@ -1461,6 +1596,218 @@ function removeGrammarIndicator(element) {
     }
 }
 
+// ========== HOVER TRANSLATION ==========
+
+const HOVER_CACHE_TTL = 5 * 60 * 1000; // 5 phút
+const HOVER_TAG_BLACKLIST = new Set(['INPUT', 'TEXTAREA', 'CODE', 'PRE', 'SCRIPT', 'STYLE', 'SELECT', 'BUTTON']);
+
+const HOVER_BLOCK_TAGS = new Set(['P', 'DIV', 'LI', 'TD', 'TH', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'BLOCKQUOTE', 'SECTION', 'ARTICLE', 'HEADER', 'FOOTER', 'MAIN', 'ASIDE', 'SPAN', 'A']);
+
+function getSentenceAtPoint(x, y) {
+    try {
+        const range = document.caretRangeFromPoint(x, y);
+        if (!range || range.startContainer.nodeType !== Node.TEXT_NODE) return null;
+
+        const textNode = range.startContainer;
+        const parent = textNode.parentElement;
+        if (!parent) return null;
+
+        // Blacklist check
+        if (HOVER_TAG_BLACKLIST.has(parent.tagName)) return null;
+        if (parent.closest('[contenteditable="true"]')) return null;
+        if (parent.closest('.ai-hover-tooltip, .ai-translator-popup, .ai-translator-icon, .ai-grammar-diff, #ai-notification')) return null;
+
+        // Find nearest block-level ancestor to get full sentence context
+        let blockEl = parent;
+        while (blockEl.parentElement && !HOVER_BLOCK_TAGS.has(blockEl.tagName)) {
+            blockEl = blockEl.parentElement;
+        }
+
+        // Walk text nodes in blockEl to find cursor's global char offset
+        const treeWalker = document.createTreeWalker(blockEl, NodeFilter.SHOW_TEXT);
+        let charOffset = 0;
+        let cursorGlobalOffset = null;
+        let node;
+
+        while ((node = treeWalker.nextNode())) {
+            if (node === textNode) {
+                cursorGlobalOffset = charOffset + range.startOffset;
+                break;
+            }
+            charOffset += node.textContent.length;
+        }
+
+        if (cursorGlobalOffset === null) return null;
+
+        const fullText = (blockEl.innerText || blockEl.textContent || '').replace(/\s+/g, ' ').trim();
+        if (!fullText || fullText.length < 3) return null;
+
+        // Find sentence boundaries (split on . ? ! newlines)
+        const sentenceEndRe = /[.?!。！？]/;
+        let start = cursorGlobalOffset;
+        let end = cursorGlobalOffset;
+
+        while (start > 0 && !sentenceEndRe.test(fullText[start - 1]) && fullText[start - 1] !== '\n') start--;
+        while (end < fullText.length && !sentenceEndRe.test(fullText[end]) && fullText[end] !== '\n') end++;
+        if (end < fullText.length && sentenceEndRe.test(fullText[end])) end++; // include ending punctuation
+
+        const sentence = fullText.slice(start, end).trim();
+        if (!sentence || sentence.length < 3 || sentence.length > 600) return null;
+
+        // Use cursor position for tooltip placement
+        const rect = range.getBoundingClientRect();
+        return { sentence, rect, element: blockEl };
+    } catch (e) {
+        return null;
+    }
+}
+
+function createHoverTooltip() {
+    if (hoverTooltip) return;
+    if (!document.body) return;
+
+    hoverTooltip = document.createElement('div');
+    hoverTooltip.className = 'ai-hover-tooltip';
+    hoverTooltip.innerHTML = `
+        <div class="ai-hover-tooltip-word"></div>
+        <div class="ai-hover-tooltip-translation"></div>
+    `;
+    document.body.appendChild(hoverTooltip);
+}
+
+function showHoverTooltip(sentence, rect, data) {
+    if (!hoverTooltip) createHoverTooltip();
+    if (!hoverTooltip) return;
+
+    // Apply current theme
+    if (currentTheme !== 'light') hoverTooltip.classList.add('ai-theme-dark');
+    else hoverTooltip.classList.remove('ai-theme-dark');
+
+    const wordEl = hoverTooltip.querySelector('.ai-hover-tooltip-word');
+    const transEl = hoverTooltip.querySelector('.ai-hover-tooltip-translation');
+
+    wordEl.style.display = 'none';
+
+    if (data === null) {
+        transEl.innerHTML = '<span class="ai-hover-tooltip-loading">Đang dịch...</span>';
+    } else {
+        const translation = data && typeof data === 'object' ? data.translation : String(data);
+        transEl.textContent = '✨ ' + escapeHtml(translation);
+    }
+
+    // Measure actual size before positioning (hidden off-screen)
+    hoverTooltip.style.visibility = 'hidden';
+    hoverTooltip.style.setProperty('display', 'block', 'important');
+    const tooltipW = hoverTooltip.offsetWidth;
+    const tooltipH = hoverTooltip.offsetHeight;
+    hoverTooltip.style.visibility = '';
+
+    const scrollX = window.scrollX;
+    const scrollY = window.scrollY;
+    const gap = 8;
+
+    let top = rect.bottom + scrollY + gap;
+    let left = rect.left + scrollX;
+
+    // Flip above if going off-screen below
+    if (rect.bottom + tooltipH + gap > window.innerHeight) {
+        top = rect.top + scrollY - tooltipH - gap;
+    }
+    // Keep within horizontal bounds
+    if (left + tooltipW > window.innerWidth - 10) {
+        left = window.innerWidth - tooltipW - 10;
+    }
+    if (left < 10) left = 10;
+
+    hoverTooltip.style.top = top + 'px';
+    hoverTooltip.style.left = left + 'px';
+}
+
+function hideHoverTooltip() {
+    clearTimeout(hoverDebounceTimer);
+    hoverDebounceTimer = null;
+    if (hoverTooltip) {
+        hoverTooltip.style.setProperty('display', 'none', 'important');
+    }
+    lastHoveredWord = '';
+    currentHoveredElement = null;
+}
+
+async function translateHoveredSentence(sentence, rect) {
+    // Check cache first
+    const cached = hoverCache.get(sentence);
+    if (cached && Date.now() - cached.timestamp < HOVER_CACHE_TTL) {
+        if (lastHoveredWord !== sentence) return;
+        showHoverTooltip(sentence, rect, cached.data);
+        return;
+    }
+
+    // Show loading state
+    showHoverTooltip(sentence, rect, null);
+
+    try {
+        const { savedTargetLang } = await chrome.storage.local.get(['savedTargetLang']);
+        const targetLang = savedTargetLang || 'vi';
+
+        chrome.runtime.sendMessage(
+            { action: 'callTranslateAPI', text: sentence, targetLang },
+            (response) => {
+                if (chrome.runtime.lastError) return;
+                // Discard if user moved away before response arrived
+                if (lastHoveredWord !== sentence) return;
+
+                if (response && response.success) {
+                    const resData = response.data;
+                    const displayData = typeof resData === 'object' ? resData : { translation: String(resData) };
+                    hoverCache.set(sentence, { data: displayData, timestamp: Date.now() });
+                    showHoverTooltip(sentence, rect, displayData);
+                } else {
+                    hideHoverTooltip();
+                }
+            }
+        );
+    } catch (e) {
+        hideHoverTooltip();
+    }
+}
+
+// Hide tooltip when clicking outside (not on the tooltip itself)
+document.addEventListener('click', (e) => {
+    if (lastHoveredWord && !(hoverTooltip && hoverTooltip.contains(e.target))) {
+        hideHoverTooltip();
+    }
+}, true);
+
+// Hide tooltip when mouse leaves the page
+window.addEventListener('blur', hideHoverTooltip);
+document.addEventListener('mouseleave', hideHoverTooltip);
+
+// Main hover listener — no Alt required, fires on plain hover
+document.addEventListener('mousemove', (e) => {
+    if (!hoverTranslationEnabled) return;
+
+    // If tooltip is showing and cursor left the tracked element, hide immediately
+    // (but not if cursor moved onto the tooltip itself)
+    if (lastHoveredWord && currentHoveredElement && !currentHoveredElement.contains(e.target)) {
+        if (hoverTooltip && hoverTooltip.contains(e.target)) return;
+        hideHoverTooltip();
+        return;
+    }
+
+    clearTimeout(hoverDebounceTimer);
+    hoverDebounceTimer = setTimeout(() => {
+        const result = getSentenceAtPoint(e.clientX, e.clientY);
+        if (!result) {
+            hideHoverTooltip();
+            return;
+        }
+        if (result.sentence === lastHoveredWord) return; // same sentence, tooltip already showing
+        lastHoveredWord = result.sentence;
+        currentHoveredElement = result.element;
+        translateHoveredSentence(result.sentence, result.rect);
+    }, 300);
+});
+
 // ========== INITIALIZATION ==========
 
 // Initialize when DOM is ready
@@ -1470,18 +1817,17 @@ function init() {
     loadSettings().then(() => {
         createTranslateIcon();
         createTranslatePopup();
+        createHoverTooltip();
 
         // Set up grammar check for existing inputs
-        if (grammarCheckEnabled) {
-            document
-                .querySelectorAll(
-                    'textarea, input[type="text"], [contenteditable="true"]'
-                )
-                .forEach((el) => {
-                    setupGrammarCheck(el);
-                });
-            observer.observe(document.body, { childList: true, subtree: true });
-        }
+        document
+            .querySelectorAll(
+                'textarea, input[type="text"], [contenteditable="true"]'
+            )
+            .forEach((el) => {
+                setupGrammarCheck(el);
+            });
+        observer.observe(document.body, { childList: true, subtree: true });
     });
 }
 

@@ -19,7 +19,7 @@
                 <div>
                     <div class="logo">
                         <img
-                            src="icons/icon48.png"
+                            src="../../assets/icons/icon48.png"
                             alt="AI Translator"
                             width="48"
                             height="48"
@@ -127,8 +127,7 @@
                                 </optgroup>
                             </select>
                             <small class="help-text"
-                                >Model ảnh hưởng đến tốc độ và chất lượng dịch. Flash
-                                nhanh hơn, Pro chính xác hơn.</small
+                                >Flash is faster, Pro is more accurate.</small
                             >
                         </div>
                         <button id="saveApiKey" class="btn btn-primary">
@@ -168,6 +167,20 @@
                                 <input
                                     type="checkbox"
                                     id="inlineTranslationEnabled"
+                                    checked
+                                />
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="feature-item">
+                            <div class="feature-info">
+                                <h3>Hover Translation</h3>
+                                <p>Hover over any sentence on the page to translate it</p>
+                            </div>
+                            <label class="toggle">
+                                <input
+                                    type="checkbox"
+                                    id="hoverTranslationEnabled"
                                     checked
                                 />
                                 <span class="slider"></span>

@@ -23,7 +23,7 @@ async function fetchWithTimeout(resource, options = {}) {
 // Helper: Get selected Gemini model from storage
 async function getGeminiModel() {
     const data = await chrome.storage.local.get('geminiModel');
-    return data.geminiModel || 'gemini-3.5-flash';
+    return data.geminiModel || 'gemini-1.5-flash-lite';
 }
 
 // Helper function to translate text using Gemini API
@@ -273,7 +273,7 @@ ${text}`;
 
     try {
         const model = await getGeminiModel();
-        const response = await fetch(
+        const response = await fetchWithTimeout(
             `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
             {
                 method: 'POST',
@@ -293,6 +293,7 @@ ${text}`;
                         maxOutputTokens: 2048,
                     },
                 }),
+                timeout: 15000,
             }
         );
 
@@ -333,7 +334,7 @@ Rules:
 
     try {
         const model = await getGeminiModel();
-        const response = await fetch(
+        const response = await fetchWithTimeout(
             `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
             {
                 method: 'POST',
@@ -347,7 +348,7 @@ Rules:
                                 { text: prompt },
                                 {
                                     inline_data: {
-                                        mime_type: 'image/jpeg',
+                                        mime_type: imageData.split(';')[0].split(':')[1],
                                         data: imageData.split(',')[1],
                                     },
                                 },
@@ -361,6 +362,7 @@ Rules:
                         maxOutputTokens: 4096,
                     },
                 }),
+                timeout: 15000,
             }
         );
 
@@ -454,7 +456,7 @@ chrome.contextMenus.onClicked.addListener((info, tab) => {
         );
     } else if (info.menuItemId === 'open-settings') {
         // Open settings page
-        chrome.tabs.create({ url: 'settings.html' });
+        chrome.tabs.create({ url: 'pages/settings/settings.html' });
     }
 });
 
@@ -473,42 +475,48 @@ chrome.commands.onCommand.addListener((command) => {
             tabs[0].id
         );
 
-        if (command === 'translate-selection') {
-            chrome.tabs.sendMessage(
-                tabs[0].id,
-                { action: 'translateFromShortcut' },
-                (response) => {
-                    if (chrome.runtime.lastError) {
-                        console.error(
-                            '[AI Translator Background] Error sending message:',
-                            chrome.runtime.lastError.message
-                        );
-                    } else {
-                        console.log(
-                            '[AI Translator Background] Message sent successfully:',
-                            response
-                        );
-                    }
-                }
-            );
-        } else if (command === 'check-grammar') {
-            chrome.tabs.sendMessage(
-                tabs[0].id,
-                { action: 'checkGrammarFromShortcut' },
-                (response) => {
-                    if (chrome.runtime.lastError) {
-                        console.error(
-                            '[AI Translator Background] Error sending message:',
-                            chrome.runtime.lastError.message
-                        );
-                    }
-                }
-            );
-        } else if (command === 'open-settings') {
-            chrome.tabs.create({ url: 'settings.html' });
-        } else if (command === 'open-flashcards') {
-            chrome.tabs.create({ url: 'flashcards.html' });
+        if (command === 'open-settings') {
+            chrome.tabs.create({ url: 'pages/settings/settings.html' });
+            return;
         }
+        if (command === 'open-flashcards') {
+            chrome.tabs.create({ url: 'pages/flashcards/flashcards.html' });
+            return;
+        }
+
+        const actionMap = {
+            'translate-selection': 'translateFromShortcut',
+            'check-grammar': 'checkGrammarFromShortcut',
+        };
+        const action = actionMap[command];
+        if (!action) return;
+
+        // Try sending message; if content script isn't loaded, inject it first then retry
+        chrome.tabs.sendMessage(tabs[0].id, { action }, (response) => {
+            if (!chrome.runtime.lastError) return;
+
+            console.warn(
+                '[AI Translator Background] Content script not ready, injecting:',
+                chrome.runtime.lastError.message
+            );
+
+            chrome.scripting.executeScript(
+                { target: { tabId: tabs[0].id }, files: ['src/content.js'] },
+                () => {
+                    if (chrome.runtime.lastError) {
+                        console.error(
+                            '[AI Translator Background] Cannot inject content script:',
+                            chrome.runtime.lastError.message
+                        );
+                        return;
+                    }
+                    // Retry after a short delay to let the script initialize
+                    setTimeout(() => {
+                        chrome.tabs.sendMessage(tabs[0].id, { action });
+                    }, 300);
+                }
+            );
+        });
     });
 });
 
@@ -520,13 +528,14 @@ async function checkGrammarWithLanguageTool(text) {
         params.append('language', 'auto'); // Auto-detect
         // params.append('enabledOnly', 'false'); // Optional
 
-        const response = await fetch('https://api.languagetool.org/v2/check', {
+        const response = await fetchWithTimeout('https://api.languagetool.org/v2/check', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
                 Accept: 'application/json',
             },
             body: params,
+            timeout: 8000,
         });
 
         if (!response.ok) {
@@ -609,7 +618,7 @@ async function addFlashcard(cardData) {
         const store = transaction.objectStore(STORE_NAME);
 
         const newCard = {
-            id: Date.now().toString(),
+            id: crypto.randomUUID(),
             word: cardData.word,
             translation: cardData.translation,
             context: cardData.context || '',
@@ -689,14 +698,15 @@ async function updateFlashcard(id, updatedData) {
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'translateSelection') {
         console.log('Text to translate:', request.text);
+        sendResponse({ success: true });
     } else if (request.action === 'openSettings') {
-        chrome.tabs.create({ url: 'settings.html' });
+        chrome.tabs.create({ url: 'pages/settings/settings.html' });
         sendResponse({ success: true });
     } else if (request.action === 'updateUsageStats') {
         // Forward to settings page if open
         chrome.tabs.query({}, (tabs) => {
             tabs.forEach((tab) => {
-                if (tab.url && tab.url.includes('settings.html')) {
+                if (tab.url && tab.url.includes('pages/settings/settings.html')) {
                     chrome.tabs
                         .sendMessage(tab.id, { action: 'updateUsageStats' })
                         .catch(() => {});

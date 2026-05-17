@@ -8,6 +8,7 @@ const geminiModelSelect = document.getElementById('geminiModel');
 const saveApiKeyBtn = document.getElementById('saveApiKey');
 const grammarCheckToggle = document.getElementById('grammarCheckEnabled');
 const inlineTranslationToggle = document.getElementById('inlineTranslationEnabled');
+const hoverTranslationToggle = document.getElementById('hoverTranslationEnabled');
 const myMemoryUsage = document.getElementById('myMemoryUsage');
 const myMemoryProgressBar = document.getElementById('myMemoryProgressBar');
 const grammarUsage = document.getElementById('grammarUsage');
@@ -33,6 +34,7 @@ async function loadSettings() {
       'geminiModel',
       'grammarCheckEnabled',
       'inlineTranslationEnabled',
+      'hoverTranslationEnabled',
     ]);
 
     if (data.apiKey) {
@@ -53,6 +55,10 @@ async function loadSettings() {
 
     if (data.inlineTranslationEnabled !== undefined) {
       inlineTranslationToggle.checked = data.inlineTranslationEnabled;
+    }
+
+    if (data.hoverTranslationEnabled !== undefined) {
+      hoverTranslationToggle.checked = data.hoverTranslationEnabled;
     }
   } catch (error) {
     console.error('Failed to load settings:', error);
@@ -270,6 +276,33 @@ function setupEventListeners() {
       showToast('Failed to update setting', 'error');
     }
   });
+
+  // Toggle hover translation
+  hoverTranslationToggle.addEventListener('change', async () => {
+    try {
+      await chrome.storage.local.set({
+        hoverTranslationEnabled: hoverTranslationToggle.checked,
+      });
+      showToast(
+        hoverTranslationToggle.checked
+          ? 'Hover translation enabled'
+          : 'Hover translation disabled',
+        'success'
+      );
+
+      // Notify all tabs
+      chrome.tabs.query({}, (tabs) => {
+        tabs.forEach((tab) => {
+          chrome.tabs
+            .sendMessage(tab.id, { action: 'settingsUpdated' })
+            .catch(() => {});
+        });
+      });
+    } catch (error) {
+      console.error('Failed to update hover translation setting:', error);
+      showToast('Failed to update setting', 'error');
+    }
+  });
 }
 
 // Show toast notification
@@ -321,7 +354,7 @@ function updateThemeUI(theme) {
 // Load initial theme
 chrome.storage.local.get(['globalTheme'], (data) => {
     const defaultTheme = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
-    const theme = data.globalTheme || 'dark';
+    const theme = data.globalTheme || defaultTheme;
     updateThemeUI(theme);
 });
 

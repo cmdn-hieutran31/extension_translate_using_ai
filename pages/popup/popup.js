@@ -39,6 +39,15 @@ const MODEL_DISPLAY_NAMES = {
     'gemini-3.1-flash-lite-preview':  '3.1 Flash Lite',
 };
 
+function escapeHtml(str) {
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 function updateModelBadge(modelId) {
     if (!activeModelBadge) return;
     const name = MODEL_DISPLAY_NAMES[modelId] || modelId;
@@ -49,7 +58,7 @@ function updateModelBadge(modelId) {
 // Click badge → mở Settings (CSP-safe, không dùng inline onclick)
 if (activeModelBadge) {
     activeModelBadge.addEventListener('click', () => {
-        chrome.tabs.create({ url: 'settings.html' });
+        chrome.tabs.create({ url: 'pages/settings/settings.html' });
     });
 }
 
@@ -121,7 +130,7 @@ targetLang.addEventListener('change', async () => {
         // Notify settings page if open
         chrome.tabs.query({}, (tabs) => {
             tabs.forEach((tab) => {
-                if (tab.url && tab.url.includes('settings.html')) {
+                if (tab.url && tab.url.includes('pages/settings/settings.html')) {
                     chrome.tabs
                         .sendMessage(tab.id, { action: 'reloadSettings' })
                         .catch(() => {});
@@ -239,23 +248,23 @@ translateBtn.addEventListener('click', async () => {
 
             if (typeof resData === 'object' && resData.dictionary) {
                 // Render Dictionary UI for popup window
-                htmlContent = `<div style="font-weight: 500; font-size: 15px; margin-bottom: 8px;">✨ ${resData.translation}</div>`;
+                htmlContent = `<div style="font-weight: 500; font-size: 15px; margin-bottom: 8px;">✨ ${escapeHtml(resData.translation)}</div>`;
 
                 if (resData.dictionary.length > 0) {
                     htmlContent += `<div class="ai-dict-container" style="margin-top: 12px; border-top: 1px solid #e5e7eb; padding-top: 12px; display: flex; flex-direction: column; gap: 12px;">`;
                     resData.dictionary.forEach((group) => {
                         htmlContent += `
                              <div class="ai-dict-group" style="display: flex; flex-direction: column; gap: 6px;">
-                                 <div class="ai-dict-type" style="font-size: 12px; color: #6b7280; font-weight: 500; text-transform: capitalize;">${group.type}</div>
+                                 <div class="ai-dict-type" style="font-size: 12px; color: #6b7280; font-weight: 500; text-transform: capitalize;">${escapeHtml(group.type)}</div>
                          `;
                         group.meanings.forEach((item) => {
                             const relatedText =
                                 item.related && item.related.length > 0
-                                    ? `<div class="ai-dict-related" style="color: #4b5563; padding-top: 2px;">- ${item.related.join(', ')}</div>`
+                                    ? `<div class="ai-dict-related" style="color: #4b5563; padding-top: 2px;">- ${escapeHtml(item.related.join(', '))}</div>`
                                     : '';
                             htmlContent += `
                                  <div class="ai-dict-item" style="display: flex; align-items: flex-start; gap: 8px; font-size: 13px; line-height: 1.4;">
-                                     <div class="ai-dict-badge" style="background: #111827; color: white; padding: 2px 8px; border-radius: 4px; font-weight: 600; white-space: nowrap;">${item.word}</div>
+                                     <div class="ai-dict-badge" style="background: #111827; color: white; padding: 2px 8px; border-radius: 4px; font-weight: 600; white-space: nowrap;">${escapeHtml(item.word)}</div>
                                      ${relatedText}
                                  </div>
                              `;
@@ -322,10 +331,6 @@ async function translateText(text, targetLang, apiKey, forceAI = false) {
                 }
 
                 if (response && response.success) {
-                    // Track usage on success (or let background do it? Background doesn't track specific counter names easily without passing them)
-                    // Original code: await trackUsage('aiTranslateCount', 'aiTranslateLastDate');
-                    // Let's keep tracking here for consistency with existing storage logic
-                    await trackUsage('aiTranslateCount', 'aiTranslateLastDate');
                     resolve(response);
                 } else {
                     reject(new Error(response ? response.error : 'Unknown error'));
@@ -392,7 +397,7 @@ retranslateBtn.addEventListener('click', async () => {
         if (typeof response === 'object' && response.data) {
             const resData = response.data;
             if (typeof resData === 'object' && resData.dictionary) {
-                htmlContent = `<div style="font-weight: 500; font-size: 15px; margin-bottom: 8px;">✨ ${resData.translation}</div>`;
+                htmlContent = `<div style="font-weight: 500; font-size: 15px; margin-bottom: 8px;">✨ ${escapeHtml(resData.translation)}</div>`;
                 translatedTextStr = resData.translation;
 
                 if (resData.dictionary.length > 0) {
@@ -400,16 +405,16 @@ retranslateBtn.addEventListener('click', async () => {
                     resData.dictionary.forEach((group) => {
                         htmlContent += `
                               <div class="ai-dict-group" style="display: flex; flex-direction: column; gap: 6px;">
-                                  <div class="ai-dict-type" style="font-size: 12px; color: #6b7280; font-weight: 500; text-transform: capitalize;">${group.type}</div>
+                                  <div class="ai-dict-type" style="font-size: 12px; color: #6b7280; font-weight: 500; text-transform: capitalize;">${escapeHtml(group.type)}</div>
                           `;
                         group.meanings.forEach((item) => {
                             const relatedText =
                                 item.related && item.related.length > 0
-                                    ? `<div class="ai-dict-related" style="color: #4b5563; padding-top: 2px;">- ${item.related.join(', ')}</div>`
+                                    ? `<div class="ai-dict-related" style="color: #4b5563; padding-top: 2px;">- ${escapeHtml(item.related.join(', '))}</div>`
                                     : '';
                             htmlContent += `
                                   <div class="ai-dict-item" style="display: flex; align-items: flex-start; gap: 8px; font-size: 13px; line-height: 1.4;">
-                                      <div class="ai-dict-badge" style="background: #111827; color: white; padding: 2px 8px; border-radius: 4px; font-weight: 600; white-space: nowrap;">${item.word}</div>
+                                      <div class="ai-dict-badge" style="background: #111827; color: white; padding: 2px 8px; border-radius: 4px; font-weight: 600; white-space: nowrap;">${escapeHtml(item.word)}</div>
                                       ${relatedText}
                                   </div>
                               `;
@@ -555,11 +560,6 @@ grammarBtn.addEventListener('click', async () => {
     const text = sourceText.value.trim();
     const apiKey = apiKeyInput.value.trim();
 
-    if (!apiKey) {
-        showStatus('Please enter your Gemini API key', 'error');
-        return;
-    }
-
     if (!text) {
         showStatus('Please enter text to check grammar', 'error');
         return;
@@ -641,12 +641,12 @@ sourceText.addEventListener('input', () => {
 
 // Open Settings button
 document.getElementById('openSettingsBtn')?.addEventListener('click', () => {
-    chrome.tabs.create({ url: 'settings.html' });
+    chrome.tabs.create({ url: 'pages/settings/settings.html' });
 });
 
 // Open Flashcards button
 document.getElementById('openFlashcardsBtn')?.addEventListener('click', () => {
-    chrome.tabs.create({ url: 'flashcards.html' });
+    chrome.tabs.create({ url: 'pages/flashcards/flashcards.html' });
 });
 
 // ========== Image Upload Functionality ==========
@@ -927,7 +927,7 @@ function updateThemeUI(theme) {
 // Load initial theme
 chrome.storage.local.get(['globalTheme'], (data) => {
     const defaultTheme = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
-    const theme = data.globalTheme || 'dark';
+    const theme = data.globalTheme || defaultTheme;
     updateThemeUI(theme);
 });
 

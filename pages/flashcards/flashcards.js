@@ -29,15 +29,15 @@ document.addEventListener('DOMContentLoaded', () => {
         let html = '';
         dictionary.forEach((group) => {
             html += `<div class="dict-group">
-                <div class="dict-type-badge">${group.type}</div>
+                <div class="dict-type-badge">${escapeHtml(group.type)}</div>
                 <div class="dict-meanings">`;
             group.meanings.forEach((item) => {
                 const related =
                     item.related && item.related.length > 0
-                        ? `<span class="dict-related">${item.related.slice(0, 3).join(', ')}</span>`
+                        ? `<span class="dict-related">${escapeHtml(item.related.slice(0, 3).join(', '))}</span>`
                         : '';
                 html += `<div class="dict-item">
-                    <span class="dict-word">${item.word}</span>${related}
+                    <span class="dict-word">${escapeHtml(item.word)}</span>${related}
                 </div>`;
             });
             html += `</div></div>`;
@@ -63,18 +63,20 @@ document.addEventListener('DOMContentLoaded', () => {
             if (card.context) {
                 try {
                     const host = new URL(card.context).hostname;
-                    contextHtml = `<div class="context-text" title="Source: ${card.context}">🔗 ${host}</div>`;
+                    contextHtml = `<div class="context-text" title="Source: ${escapeHtml(card.context)}">🔗 ${escapeHtml(host)}</div>`;
                 } catch (e) {
-                    contextHtml = `<div class="context-text">📝 ${card.context}</div>`;
+                    contextHtml = `<div class="context-text">📝 ${escapeHtml(card.context)}</div>`;
                 }
             }
 
             // Format example sentence
             let exampleHtml = '';
             const exampleText = card.example || '';
-            const highlighted = (card.example && card.example.length > card.word.length) 
-                ? card.example.replace(new RegExp(`(${escapeRegex(card.word)})`, 'gi'), '<strong>$1</strong>')
-                : exampleText;
+            const escapedExample = escapeHtml(exampleText);
+            const escapedWord = escapeHtml(card.word);
+            const highlighted = (escapedExample && escapedExample.length > escapedWord.length)
+                ? escapedExample.replace(new RegExp(`(${escapeRegex(escapedWord)})`, 'gi'), '<strong>$1</strong>')
+                : escapedExample;
 
             exampleHtml = `
                 <div class="example-container">
@@ -83,7 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <button class="btn-edit-example" title="Edit example">📝</button>
                     </div>
                     <div class="example-edit" style="display: none;">
-                        <textarea class="edit-example-input" placeholder="Enter your example here...">${exampleText}</textarea>
+                        <textarea class="edit-example-input" placeholder="Enter your example here...">${escapeHtml(exampleText)}</textarea>
                         <div class="edit-actions">
                             <button class="btn-save-example">Save</button>
                             <button class="btn-cancel-example">Cancel</button>
@@ -113,20 +115,20 @@ document.addEventListener('DOMContentLoaded', () => {
                         <!-- Front Side (Word) -->
                         <div class="flashcard-front">
                             <div class="card-actions action-right">
-                                <button class="btn-icon speak" title="Listen" data-speak="${card.word.replace(/"/g, '&quot;')}">🔊</button>
+                                <button class="btn-icon speak" title="Listen" data-speak="${escapeHtml(card.word)}">🔊</button>
                             </div>
-                            <div class="word-text">${card.word}</div>
+                            <div class="word-text">${escapeHtml(card.word)}</div>
                             ${exampleHtml}
                             ${contextHtml}
                             <div class="flip-hint">Click to flip ⤵</div>
                         </div>
-                        
+
                         <!-- Back Side (Translation) -->
                         <div class="flashcard-back">
                             <div class="card-actions action-left">
-                                <button class="btn-icon delete" title="Delete Card" data-id="${card.id}">🗑</button>
+                                <button class="btn-icon delete" title="Delete Card" data-id="${escapeHtml(card.id)}">🗑</button>
                             </div>
-                            <div class="trans-text">${card.translation}</div>
+                            <div class="trans-text">${escapeHtml(card.translation)}</div>
                             <div class="flip-hint">Click to flip ⤴</div>
                         </div>
                     </div>
@@ -201,10 +203,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     }, (response) => {
                         if (response && response.success) {
                             card.example = newExample;
-                            const escapedWord = escapeRegex(card.word);
-                            const regex = new RegExp(`(${escapedWord})`, 'gi');
-                            const newHighlighted = newExample.replace(regex, '<strong>$1</strong>');
-                            exampleDisplay.innerHTML = newExample ? `"${newHighlighted}"` : '<span class="no-example">No example provided</span>';
+                            const escapedNewExample = escapeHtml(newExample);
+                            const escapedCardWord = escapeHtml(card.word);
+                            const regex = new RegExp(`(${escapeRegex(escapedCardWord)})`, 'gi');
+                            const newHighlighted = escapedNewExample.replace(regex, '<strong>$1</strong>');
+                            exampleDisplay.innerHTML = escapedNewExample ? `"${newHighlighted}"` : '<span class="no-example">No example provided</span>';
                             
                             viewDiv.style.display = 'flex';
                             editDiv.style.display = 'none';
@@ -312,6 +315,15 @@ document.addEventListener('DOMContentLoaded', () => {
         else if (state === 'grid') flashcardGrid.style.display = 'grid';
     }
 
+    function escapeHtml(str) {
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
     function escapeRegex(string) {
         return string.replace(/[/\-\\^$*+?.()|[\]{}]/g, '\\$&');
     }
@@ -337,7 +349,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Load initial theme
     chrome.storage.local.get(['globalTheme'], (data) => {
         const defaultTheme = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
-        const theme = data.globalTheme || 'dark';
+        const theme = data.globalTheme || defaultTheme;
         updateThemeUI(theme);
     });
 
