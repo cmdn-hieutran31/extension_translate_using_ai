@@ -259,8 +259,13 @@
                         <h2>⌨️ Keyboard Shortcuts</h2>
                     </div>
                     <div class="card-body">
+                        <div class="os-tabs" id="osTabs" role="tablist">
+                            <button class="os-tab" data-os="mac" role="tab">macOS</button>
+                            <button class="os-tab" data-os="win" role="tab">Windows</button>
+                            <button class="os-tab" data-os="linux" role="tab">Linux</button>
+                        </div>
                         <div class="shortcut-list" id="shortcutList">
-                            <!-- populated by JS based on OS -->
+                            <!-- populated by JS based on selected OS -->
                         </div>
                     </div>
                 </section>

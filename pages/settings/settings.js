@@ -334,30 +334,52 @@ setInterval(() => {
 
 // ========== Keyboard Shortcuts ==========
 (function renderShortcuts() {
-  const isMac = navigator.platform.toUpperCase().includes('MAC') ||
-                navigator.userAgent.toUpperCase().includes('MAC');
+  const ua = navigator.userAgent.toUpperCase();
+  const platform = (navigator.platform || '').toUpperCase();
+  let detectedOS = 'win';
+  if (platform.includes('MAC') || ua.includes('MAC')) detectedOS = 'mac';
+  else if (platform.includes('LINUX') || ua.includes('LINUX')) detectedOS = 'linux';
 
-  const mod = isMac ? '⌥ Option' : 'Alt';
-  const shortcuts = [
-    { keys: `${mod} + Shift + T`, desc: 'Translate selected text' },
-    { keys: `${mod} + Shift + G`, desc: 'Check grammar of selected text' },
-    { keys: `${mod} + Shift + F`, desc: 'Open My Flashcards' },
-    { keys: `${mod} + Shift + S`, desc: 'Open Settings' },
-    { keys: 'Not set', desc: 'Open Translation History', note: 'Bind manually at chrome://extensions/shortcuts (Chrome cho phép tối đa 4 phím mặc định)' },
-  ];
+  const modByOS = {
+    mac: '⌥ Option + ⇧ Shift',
+    win: 'Alt + Shift',
+    linux: 'Alt + Shift',
+  };
+
+  function buildShortcuts(os) {
+    const mod = modByOS[os];
+    return [
+      { keys: `${mod} + T`, desc: 'Translate selected text' },
+      { keys: `${mod} + G`, desc: 'Check grammar of selected text' },
+      { keys: `${mod} + F`, desc: 'Open My Flashcards' },
+      { keys: `${mod} + S`, desc: 'Open Settings' },
+      { keys: 'Not set', desc: 'Open Translation History', note: 'Bind manually at chrome://extensions/shortcuts (Chrome cho phép tối đa 4 phím mặc định)' },
+    ];
+  }
 
   const list = document.getElementById('shortcutList');
+  const tabs = document.querySelectorAll('#osTabs .os-tab');
   if (!list) return;
 
-  list.innerHTML = shortcuts.map(s => `
-    <div class="shortcut-item">
-      <kbd${s.keys === 'Not set' ? ' class="kbd-unset"' : ''}>${s.keys}</kbd>
-      <span>
-        ${s.desc}
-        ${s.note ? `<small class="shortcut-note">${s.note}</small>` : ''}
-      </span>
-    </div>
-  `).join('');
+  function render(os) {
+    const shortcuts = buildShortcuts(os);
+    list.innerHTML = shortcuts.map(s => `
+      <div class="shortcut-item">
+        <kbd${s.keys === 'Not set' ? ' class="kbd-unset"' : ''}>${s.keys}</kbd>
+        <span>
+          ${s.desc}
+          ${s.note ? `<small class="shortcut-note">${s.note}</small>` : ''}
+        </span>
+      </div>
+    `).join('');
+    tabs.forEach(t => t.classList.toggle('active', t.dataset.os === os));
+  }
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => render(tab.dataset.os));
+  });
+
+  render(detectedOS);
 })();
 
 // ========== Cross-nav buttons ==========
