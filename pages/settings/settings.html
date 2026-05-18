@@ -30,6 +30,19 @@
                         Powerful AI-powered translation and grammar checking
                     </p>
                 </div>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                <button
+                    class="icon-button"
+                    id="openFlashcardsBtn"
+                    title="Open Flashcards"
+                    style="padding: 10px; border-radius: 50%; font-size: 16px;"
+                >⭐️</button>
+                <button
+                    class="icon-button"
+                    id="openHistoryBtn"
+                    title="Open Translation History"
+                    style="padding: 10px; border-radius: 50%; font-size: 16px;"
+                >🕐</button>
                 <button
                     class="icon-button"
                     id="themeToggleBtn"
@@ -52,6 +65,7 @@
                         ></path>
                     </svg>
                 </button>
+                </div>
             </header>
 
             <main>
@@ -245,27 +259,9 @@
                         <h2>⌨️ Keyboard Shortcuts</h2>
                     </div>
                     <div class="card-body">
-                        <div class="shortcut-list">
-                            <div class="shortcut-item">
-                                <kbd>Alt + Shift + T</kbd>
-                                <span>Translate selected text</span>
-                            </div>
-                            <div class="shortcut-item">
-                                <kbd>Alt + Shift + G</kbd>
-                                <span>Check grammar of selected text</span>
-                            </div>
-                            <div class="shortcut-item">
-                                <kbd>Alt + Shift + F</kbd>
-                                <span>Open My Flashcards</span>
-                            </div>
-                            <div class="shortcut-item">
-                                <kbd>Alt + Shift + S</kbd>
-                                <span>Open Settings</span>
-                            </div>
+                        <div class="shortcut-list" id="shortcutList">
+                            <!-- populated by JS based on OS -->
                         </div>
-                        <p class="help-text">
-                            💡 Tip: Right-click on selected text for more options
-                        </p>
                     </div>
                 </section>
 

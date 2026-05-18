@@ -16,11 +16,25 @@
             </div>
             <div class="header-right" style="display: flex; gap: 12px; align-items: center;">
                 <span id="cardCount" class="badge">0 cards</span>
+                <button class="btn-icon btn-study" id="studyModeBtn" title="Start Study Mode" style="display: none;">
+                    📖 <span id="dueBadge" class="due-badge">0</span>
+                </button>
+                <button class="btn-icon" id="openHistoryBtn" title="Open Translation History">🕐</button>
+                <button class="btn-icon" id="openSettingsBtn" title="Open Settings">⚙️</button>
                 <button class="btn-icon" id="themeToggleBtn" title="Toggle Light/Dark Theme">
                     <svg id="themeIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
                 </button>
             </div>
         </header>
+
+        <!-- Toolbar: Search -->
+        <div class="toolbar" id="toolbar" style="display: none;">
+            <div class="search-box">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="searchInput" class="search-input" placeholder="Search by word, translation, example, or source..." autocomplete="off">
+                <button class="search-clear" id="searchClear" title="Clear" style="display: none;">×</button>
+            </div>
+        </div>
 
         <!-- Main Content -->
         <main class="main-content">
@@ -37,9 +51,23 @@
                 <p>Translate words on any website and click the ⭐️ Save button to add them here.</p>
             </div>
 
+            <!-- No results state -->
+            <div id="noResultsState" class="state-container" style="display: none;">
+                <div class="empty-icon">🔍</div>
+                <h2>No matching flashcards</h2>
+                <p>Try a different keyword.</p>
+            </div>
+
             <!-- Flashcards Grid -->
             <div id="flashcardGrid" class="flashcard-grid" style="display: none;">
                 <!-- Cards will be populated here via JavaScript -->
+            </div>
+
+            <!-- Pagination -->
+            <div class="pagination" id="pagination" style="display: none;">
+                <button class="page-btn" id="prevPageBtn" title="Previous page">‹</button>
+                <span class="page-indicator" id="pageIndicator">Page 1 / 1</span>
+                <button class="page-btn" id="nextPageBtn" title="Next page">›</button>
             </div>
         </main>
     </div>

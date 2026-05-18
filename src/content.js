@@ -456,6 +456,7 @@ function createTranslateIcon() {
         opacity: 0.5 !important;
         font-style: italic !important;
       }
+
     `;
         document.head.appendChild(style);
     }
@@ -1181,9 +1182,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         sendResponse({ success: true });
     } else if (request.action === 'settingsUpdated') {
         loadSettings().then(() => {
-            if (inlineTranslationEnabled && !translateIcon) {
-                createTranslateIcon();
-            }
+            if (inlineTranslationEnabled && !translateIcon) createTranslateIcon();
         });
         sendResponse({ success: true });
     }
@@ -1750,7 +1749,7 @@ async function translateHoveredSentence(sentence, rect) {
         const targetLang = savedTargetLang || 'vi';
 
         chrome.runtime.sendMessage(
-            { action: 'callTranslateAPI', text: sentence, targetLang },
+            { action: 'callTranslateAPI', text: sentence, targetLang, skipHistory: true },
             (response) => {
                 if (chrome.runtime.lastError) return;
                 // Discard if user moved away before response arrived
@@ -1819,14 +1818,9 @@ function init() {
         createTranslatePopup();
         createHoverTooltip();
 
-        // Set up grammar check for existing inputs
         document
-            .querySelectorAll(
-                'textarea, input[type="text"], [contenteditable="true"]'
-            )
-            .forEach((el) => {
-                setupGrammarCheck(el);
-            });
+            .querySelectorAll('textarea, input[type="text"], [contenteditable="true"]')
+            .forEach((el) => setupGrammarCheck(el));
         observer.observe(document.body, { childList: true, subtree: true });
     });
 }

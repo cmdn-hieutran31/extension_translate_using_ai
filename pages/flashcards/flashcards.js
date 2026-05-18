@@ -2,9 +2,33 @@ document.addEventListener('DOMContentLoaded', () => {
     const cardCountBadge = document.getElementById('cardCount');
     const loadingState = document.getElementById('loadingState');
     const emptyState = document.getElementById('emptyState');
+    const noResultsState = document.getElementById('noResultsState');
     const flashcardGrid = document.getElementById('flashcardGrid');
+    const toolbar = document.getElementById('toolbar');
+    const searchInput = document.getElementById('searchInput');
+    const searchClear = document.getElementById('searchClear');
+    const pagination = document.getElementById('pagination');
+    const prevPageBtn = document.getElementById('prevPageBtn');
+    const nextPageBtn = document.getElementById('nextPageBtn');
+    const pageIndicator = document.getElementById('pageIndicator');
 
-    let cards = [];
+    const PAGE_SIZE = 12;
+
+    let allCards = [];
+    let filteredCards = [];
+    let currentPage = 1;
+    let searchDebounceTimer = null;
+
+    // Cross-nav buttons
+    document.getElementById('openHistoryBtn')?.addEventListener('click', () => {
+        chrome.tabs.create({ url: chrome.runtime.getURL('pages/history/history.html') });
+    });
+    document.getElementById('openSettingsBtn')?.addEventListener('click', () => {
+        chrome.tabs.create({ url: chrome.runtime.getURL('pages/settings/settings.html') });
+    });
+    document.getElementById('studyModeBtn')?.addEventListener('click', () => {
+        chrome.tabs.create({ url: chrome.runtime.getURL('pages/flashcards/study.html') });
+    });
 
     // Load cards from DB
     loadCards();
@@ -14,14 +38,99 @@ document.addEventListener('DOMContentLoaded', () => {
 
         chrome.runtime.sendMessage({ action: 'getFlashcards' }, (response) => {
             if (response && response.success) {
-                cards = response.data || [];
-                cardCountBadge.textContent = `${cards.length} card${cards.length !== 1 ? 's' : ''}`;
-                renderCards();
+                allCards = response.data || [];
+                currentPage = 1;
+                applyFilterAndRender();
+                updateStudyBadge();
             } else {
                 console.error('Failed to load flashcards:', response?.error);
-                showState('empty');
+                allCards = [];
+                applyFilterAndRender();
             }
         });
+    }
+
+    function updateStudyBadge() {
+        const studyBtn = document.getElementById('studyModeBtn');
+        const dueBadge = document.getElementById('dueBadge');
+        if (!studyBtn || !dueBadge) return;
+        const nowIso = new Date().toISOString();
+        const dueCount = allCards.filter(c => (c.nextReviewAt || c.createdAt) <= nowIso).length;
+        if (dueCount > 0) {
+            studyBtn.style.display = 'inline-flex';
+            dueBadge.textContent = dueCount;
+        } else {
+            studyBtn.style.display = 'none';
+        }
+    }
+
+    function getHostnameOrEmpty(str) {
+        if (!str) return '';
+        try { return new URL(str).hostname; } catch { return ''; }
+    }
+
+    function applyFilterAndRender() {
+        const query = (searchInput.value || '').trim().toLowerCase();
+
+        if (!query) {
+            filteredCards = allCards;
+        } else {
+            filteredCards = allCards.filter((c) => {
+                const word = (c.word || '').toLowerCase();
+                const translation = (c.translation || '').toLowerCase();
+                const example = (c.example || '').toLowerCase();
+                const ctx = (c.context || '').toLowerCase();
+                const host = getHostnameOrEmpty(c.context).toLowerCase();
+                return word.includes(query)
+                    || translation.includes(query)
+                    || example.includes(query)
+                    || ctx.includes(query)
+                    || host.includes(query);
+            });
+        }
+
+        const totalPages = Math.max(1, Math.ceil(filteredCards.length / PAGE_SIZE));
+        if (currentPage > totalPages) currentPage = totalPages;
+        if (currentPage < 1) currentPage = 1;
+
+        updateCountBadge();
+
+        // Decide which state to show
+        if (allCards.length === 0) {
+            toolbar.style.display = 'none';
+            pagination.style.display = 'none';
+            showState('empty');
+            return;
+        }
+
+        toolbar.style.display = 'flex';
+
+        if (filteredCards.length === 0) {
+            pagination.style.display = 'none';
+            showState('noResults');
+            return;
+        }
+
+        const start = (currentPage - 1) * PAGE_SIZE;
+        const pageItems = filteredCards.slice(start, start + PAGE_SIZE);
+        renderCards(pageItems);
+
+        // Pagination UI — always show when there's data
+        pagination.style.display = 'flex';
+        pageIndicator.textContent = `Page ${currentPage} / ${totalPages}`;
+        prevPageBtn.disabled = currentPage === 1;
+        nextPageBtn.disabled = currentPage === totalPages;
+    }
+
+    function updateCountBadge() {
+        const total = allCards.length;
+        const shown = filteredCards.length;
+        const isFiltered = shown !== total;
+        if (isFiltered) {
+            cardCountBadge.textContent = `${shown} of ${total}`;
+        } else {
+            cardCountBadge.textContent = `${total} card${total !== 1 ? 's' : ''}`;
+        }
     }
 
     function buildDictionaryHtml(dictionary) {
@@ -45,16 +154,11 @@ document.addEventListener('DOMContentLoaded', () => {
         return html;
     }
 
-    function renderCards() {
-        if (cards.length === 0) {
-            showState('empty');
-            return;
-        }
-
+    function renderCards(cardsToRender) {
         flashcardGrid.innerHTML = '';
         const fragment = document.createDocumentFragment();
 
-        cards.forEach((card) => {
+        cardsToRender.forEach((card) => {
             const wrapper = document.createElement('div');
             wrapper.className = 'card-wrapper';
 
@@ -282,13 +386,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     element.style.opacity = '0';
                     element.style.transition = 'all 0.3s ease';
                     setTimeout(() => {
-                        cards = cards.filter((c) => c.id !== id);
-                        cardCountBadge.textContent = `${cards.length} card${cards.length !== 1 ? 's' : ''}`;
-                        if (cards.length === 0) {
-                            showState('empty');
-                        } else {
-                            element.remove();
-                        }
+                        allCards = allCards.filter((c) => c.id !== id);
+                        applyFilterAndRender();
                     }, 300);
                 } else {
                     alert('Error deleting flashcard');
@@ -308,12 +407,50 @@ document.addEventListener('DOMContentLoaded', () => {
     function showState(state) {
         loadingState.style.display = 'none';
         emptyState.style.display = 'none';
+        noResultsState.style.display = 'none';
         flashcardGrid.style.display = 'none';
 
         if (state === 'loading') loadingState.style.display = 'flex';
         else if (state === 'empty') emptyState.style.display = 'flex';
+        else if (state === 'noResults') noResultsState.style.display = 'flex';
         else if (state === 'grid') flashcardGrid.style.display = 'grid';
     }
+
+    // Search input
+    searchInput.addEventListener('input', () => {
+        searchClear.style.display = searchInput.value ? 'flex' : 'none';
+        clearTimeout(searchDebounceTimer);
+        searchDebounceTimer = setTimeout(() => {
+            currentPage = 1;
+            applyFilterAndRender();
+        }, 200);
+    });
+
+    searchClear.addEventListener('click', () => {
+        searchInput.value = '';
+        searchClear.style.display = 'none';
+        currentPage = 1;
+        applyFilterAndRender();
+        searchInput.focus();
+    });
+
+    // Pagination buttons
+    prevPageBtn.addEventListener('click', () => {
+        if (currentPage > 1) {
+            currentPage--;
+            applyFilterAndRender();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    });
+
+    nextPageBtn.addEventListener('click', () => {
+        const totalPages = Math.max(1, Math.ceil(filteredCards.length / PAGE_SIZE));
+        if (currentPage < totalPages) {
+            currentPage++;
+            applyFilterAndRender();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    });
 
     function escapeHtml(str) {
         return String(str)

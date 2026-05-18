@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Translator - Study</title>
+    <link rel="stylesheet" href="flashcards.css">
+    <link rel="stylesheet" href="study.css">
+</head>
+<body>
+    <div class="study-container">
+        <header class="study-header">
+            <button class="study-close" id="closeBtn" title="Back to Flashcards">←</button>
+            <div class="study-progress">
+                <span id="progressText">0 / 0</span>
+                <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+            </div>
+            <button class="btn-icon" id="themeToggleBtn" title="Toggle Light/Dark Theme">
+                <svg id="themeIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+            </button>
+        </header>
+
+        <main class="study-main">
+            <div id="loadingState" class="study-state">
+                <div class="spinner"></div>
+                <p>Loading study session...</p>
+            </div>
+
+            <div id="emptyState" class="study-state" hidden>
+                <div class="study-emoji">🎉</div>
+                <h2>All caught up!</h2>
+                <p>No cards due for review right now. Save more words from any webpage and come back.</p>
+                <button class="btn-primary" id="backToGridBtn">Back to Flashcards</button>
+            </div>
+
+            <div id="doneState" class="study-state" hidden>
+                <div class="study-emoji">✨</div>
+                <h2>Session complete!</h2>
+                <p>
+                    <span class="stat-correct" id="masteredText">0 / 0</span> mastered
+                    · <span class="stat-wrong" id="mistakesText">0</span> mistake(s)
+                </p>
+                <div class="accuracy"><span id="accuracyText">0%</span> first-try accuracy</div>
+                <div class="review-log" id="reviewLog"></div>
+                <button class="btn-primary" id="doneBackBtn">Back to Flashcards</button>
+            </div>
+
+            <div id="exerciseStage" class="exercise-stage" hidden>
+                <div class="exercise-meta">
+                    <span class="exercise-type-badge" id="typeBadge">—</span>
+                </div>
+
+                <!-- Multiple choice (word → translation) -->
+                <div class="exercise-panel" id="panelChoice" hidden>
+                    <div class="prompt">Choose the correct translation</div>
+                    <div class="prompt-word">
+                        <span id="choiceWord"></span>
+                        <button class="speak-inline" id="choiceSpeak" title="Listen">🔊</button>
+                    </div>
+                    <div class="choice-grid" id="choiceGrid"></div>
+                </div>
+
+                <!-- Type translation -->
+                <div class="exercise-panel" id="panelType" hidden>
+                    <div class="prompt">Type the translation</div>
+                    <div class="prompt-word">
+                        <span id="typeWord"></span>
+                        <button class="speak-inline" id="typeSpeak" title="Listen">🔊</button>
+                    </div>
+                    <input type="text" class="answer-input" id="typeInput" placeholder="Your answer..." autocomplete="off" autocapitalize="off" spellcheck="false">
+                    <button class="btn-primary submit-btn" id="typeSubmit">Check (Enter)</button>
+                </div>
+
+                <!-- Fill in the blank -->
+                <div class="exercise-panel" id="panelFill" hidden>
+                    <div class="prompt">Fill in the missing word</div>
+                    <div class="fill-sentence" id="fillSentence"></div>
+                    <div class="fill-hint" id="fillHint"></div>
+                    <input type="text" class="answer-input" id="fillInput" placeholder="The missing word..." autocomplete="off" autocapitalize="off" spellcheck="false">
+                    <button class="btn-primary submit-btn" id="fillSubmit">Check (Enter)</button>
+                </div>
+
+                <!-- Listening -->
+                <div class="exercise-panel" id="panelListen" hidden>
+                    <div class="prompt">Listen and choose the word you hear</div>
+                    <button class="speak-big" id="listenPlay" title="Play audio">🔊 Play again</button>
+                    <div class="choice-grid" id="listenGrid"></div>
+                </div>
+
+                <!-- Feedback -->
+                <div class="feedback" id="feedback" hidden>
+                    <div class="feedback-icon" id="feedbackIcon"></div>
+                    <div class="feedback-title" id="feedbackTitle"></div>
+                    <div class="feedback-detail" id="feedbackDetail"></div>
+                    <button class="btn-primary" id="continueBtn">Continue (Enter)</button>
+                </div>
+
+                <button class="skip-btn" id="skipBtn" type="button">Skip / Show answer</button>
+            </div>
+        </main>
+    </div>
+
+    <script src="study.js"></script>
+</body>
+</html>

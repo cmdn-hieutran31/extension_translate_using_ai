@@ -474,7 +474,7 @@ body::after {
 .footer {
   background: var(--footer-bg);
   backdrop-filter: blur(20px);
-  padding: 16px 20px;
+  padding: 10px 16px;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -482,6 +482,7 @@ body::after {
   position: sticky;
   bottom: 0;
   z-index: 10;
+  gap: 8px;
 }
 
 .footer p {
@@ -491,6 +492,47 @@ body::after {
   opacity: 0.7;
 }
 
+.footer-nav {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.footer-nav-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  transition: background 0.18s;
+  color: var(--text-secondary);
+}
+
+.footer-nav-btn:hover {
+  background: rgba(128, 128, 128, 0.12);
+}
+
+.footer-nav-icon {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.footer-nav-label {
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+.footer-nav-btn--amber .footer-nav-label { color: #d97706; }
+.footer-nav-btn--amber .footer-nav-icon  { filter: saturate(1.2); }
+.footer-nav-btn--blue  .footer-nav-label { color: #3b82f6; }
+
+/* keep btn-link for any other uses */
 .btn-link {
   background: none;
   border: none;

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Translator - History</title>
+    <link rel="stylesheet" href="history.css">
+</head>
+<body>
+    <div class="app-container">
+        <header class="app-header">
+            <div class="header-left">
+                <div class="logo-box">🕐</div>
+                <h1>Translation History</h1>
+            </div>
+            <div class="header-right">
+                <span id="historyCount" class="badge">0 entries</span>
+                <div class="export-wrapper">
+                    <button class="btn-icon" id="exportBtn" title="Export History" aria-haspopup="true" aria-expanded="false">📥</button>
+                    <div class="export-menu" id="exportMenu" hidden>
+                        <button type="button" data-format="csv">Export as CSV</button>
+                        <button type="button" data-format="json">Export as JSON</button>
+                    </div>
+                </div>
+                <button class="btn-icon nav-flashcards" id="openFlashcardsBtn" title="Open Flashcards">⭐️</button>
+                <button class="btn-icon nav-settings" id="openSettingsBtn" title="Open Settings">⚙️</button>
+                <button class="btn-icon btn-danger" id="clearAllBtn" title="Clear All History">🗑️</button>
+                <button class="btn-icon" id="themeToggleBtn" title="Toggle Light/Dark Theme">
+                    <svg id="themeIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- Toolbar: Search + Filter -->
+        <div class="toolbar" id="toolbar" style="display: none;">
+            <div class="search-box">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="searchInput" class="search-input" placeholder="Search by original text, translation, or website..." autocomplete="off">
+                <button class="search-clear" id="searchClear" title="Clear" style="display: none;">×</button>
+            </div>
+            <div class="filter-chips" id="filterChips" role="tablist" aria-label="Filter by source">
+                <button class="filter-chip active" data-source="all" type="button">All</button>
+                <button class="filter-chip" data-source="ai" type="button">AI</button>
+                <button class="filter-chip" data-source="mymemory" type="button">MyMemory</button>
+                <button class="filter-chip" data-source="google_dict" type="button">Google</button>
+            </div>
+        </div>
+
+        <main class="main-content">
+            <div id="loadingState" class="state-container">
+                <div class="spinner"></div>
+                <p>Loading history...</p>
+            </div>
+
+            <div id="emptyState" class="state-container" style="display: none;">
+                <div class="empty-icon">🕐</div>
+                <h2>No translation history</h2>
+                <p>Translate text on any webpage and the history will appear here.</p>
+            </div>
+
+            <div id="noResultsState" class="state-container" style="display: none;">
+                <div class="empty-icon">🔍</div>
+                <h2>No matching entries</h2>
+                <p>Try a different keyword.</p>
+            </div>
+
+            <div id="historyList" class="history-list" style="display: none;"></div>
+
+            <!-- Pagination -->
+            <div class="pagination" id="pagination" style="display: none;">
+                <button class="page-btn" id="prevPageBtn" title="Previous page">‹</button>
+                <span class="page-indicator" id="pageIndicator">Page 1 / 1</span>
+                <button class="page-btn" id="nextPageBtn" title="Next page">›</button>
+            </div>
+        </main>
+    </div>
+
+    <script src="history.js"></script>
+</body>
+</html>

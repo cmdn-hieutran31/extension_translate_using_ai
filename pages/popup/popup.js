@@ -649,6 +649,11 @@ document.getElementById('openFlashcardsBtn')?.addEventListener('click', () => {
     chrome.tabs.create({ url: 'pages/flashcards/flashcards.html' });
 });
 
+// Open History button
+document.getElementById('openHistoryBtn')?.addEventListener('click', () => {
+    chrome.tabs.create({ url: 'pages/history/history.html' });
+});
+
 // ========== Image Upload Functionality ==========
 
 // Paste from clipboard (Ctrl+V / Cmd+V)

@@ -233,14 +233,21 @@
             </div>
 
             <div class="footer">
-                <div style="display: flex; gap: 12px; align-items: center;">
-                    <button id="openSettingsBtn" class="btn-link">⚙️ Settings</button>
-                    <button id="openFlashcardsBtn" class="btn-link" style="color: #d97706; font-weight: bold;">⭐️ Flashcards</button>
+                <div class="footer-nav">
+                    <button id="openSettingsBtn" class="footer-nav-btn" title="Settings">
+                        <span class="footer-nav-icon">⚙️</span>
+                        <span class="footer-nav-label">Settings</span>
+                    </button>
+                    <button id="openFlashcardsBtn" class="footer-nav-btn footer-nav-btn--amber" title="Flashcards">
+                        <span class="footer-nav-icon">⭐️</span>
+                        <span class="footer-nav-label">Flashcards</span>
+                    </button>
+                    <button id="openHistoryBtn" class="footer-nav-btn footer-nav-btn--blue" title="History">
+                        <span class="footer-nav-icon">🕐</span>
+                        <span class="footer-nav-label">History</span>
+                    </button>
                 </div>
-                <div style="display: flex; align-items: center; gap: 6px;">
-                    <span id="activeModelBadge" class="model-badge" title="AI Model đang dùng" style="cursor:pointer">⚡ --</span>
-                    <p>Powered by Google Gemini AI</p>
-                </div>
+                <span id="activeModelBadge" class="model-badge" title="AI Model đang dùng — click để đổi" style="cursor:pointer">⚡ --</span>
             </div>
         </div>
 

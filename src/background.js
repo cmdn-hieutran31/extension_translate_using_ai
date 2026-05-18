@@ -483,6 +483,10 @@ chrome.commands.onCommand.addListener((command) => {
             chrome.tabs.create({ url: 'pages/flashcards/flashcards.html' });
             return;
         }
+        if (command === 'open-history') {
+            chrome.tabs.create({ url: 'pages/history/history.html' });
+            return;
+        }
 
         const actionMap = {
             'translate-selection': 'translateFromShortcut',
@@ -580,8 +584,18 @@ async function checkGrammarWithLanguageTool(text) {
 // FLASHCARD INDEXEDDB MANAGEMENT
 // ==========================================
 const DB_NAME = 'AITranslatorDB';
-const DB_VERSION = 1;
+const DB_VERSION = 3;
 const STORE_NAME = 'flashcards';
+const HISTORY_STORE = 'history';
+const HISTORY_MAX = 200;
+
+// SRS defaults (SM-2)
+const SRS_DEFAULTS = {
+    easeFactor: 2.5,
+    interval: 0,
+    repetitions: 0,
+    lastReviewedAt: null,
+};
 
 // Helper: Open Database
 function openDatabase() {
@@ -599,12 +613,35 @@ function openDatabase() {
 
         request.onupgradeneeded = (event) => {
             const db = event.target.result;
+            const tx = event.target.transaction;
+
             if (!db.objectStoreNames.contains(STORE_NAME)) {
-                const objectStore = db.createObjectStore(STORE_NAME, {
-                    keyPath: 'id',
-                });
+                const objectStore = db.createObjectStore(STORE_NAME, { keyPath: 'id' });
                 objectStore.createIndex('createdAt', 'createdAt', { unique: false });
-                console.log('Object store created');
+            }
+            if (!db.objectStoreNames.contains(HISTORY_STORE)) {
+                const historyStore = db.createObjectStore(HISTORY_STORE, { keyPath: 'id' });
+                historyStore.createIndex('translatedAt', 'translatedAt', { unique: false });
+            }
+
+            // v2 -> v3: add SRS fields + nextReviewAt index
+            if (event.oldVersion < 3 && db.objectStoreNames.contains(STORE_NAME)) {
+                const cardStore = tx.objectStore(STORE_NAME);
+                if (!cardStore.indexNames.contains('nextReviewAt')) {
+                    cardStore.createIndex('nextReviewAt', 'nextReviewAt', { unique: false });
+                }
+                cardStore.openCursor().onsuccess = (e) => {
+                    const cursor = e.target.result;
+                    if (!cursor) return;
+                    const card = cursor.value;
+                    if (card.nextReviewAt === undefined) {
+                        Object.assign(card, SRS_DEFAULTS, {
+                            nextReviewAt: card.createdAt || new Date().toISOString(),
+                        });
+                        cursor.update(card);
+                    }
+                    cursor.continue();
+                };
             }
         };
     });
@@ -617,6 +654,7 @@ async function addFlashcard(cardData) {
         const transaction = db.transaction([STORE_NAME], 'readwrite');
         const store = transaction.objectStore(STORE_NAME);
 
+        const now = new Date().toISOString();
         const newCard = {
             id: crypto.randomUUID(),
             word: cardData.word,
@@ -624,7 +662,9 @@ async function addFlashcard(cardData) {
             context: cardData.context || '',
             example: cardData.example || '',
             dictionary: cardData.dictionary || [],
-            createdAt: new Date().toISOString(),
+            createdAt: now,
+            ...SRS_DEFAULTS,
+            nextReviewAt: now,
         };
 
         const request = store.add(newCard);
@@ -694,6 +734,140 @@ async function updateFlashcard(id, updatedData) {
     });
 }
 
+// SM-2 spaced repetition.
+// quality: 0=Again, 3=Hard, 4=Good, 5=Easy.
+function scheduleNext(card, quality) {
+    const ef = typeof card.easeFactor === 'number' ? card.easeFactor : 2.5;
+    const reps = typeof card.repetitions === 'number' ? card.repetitions : 0;
+    const now = Date.now();
+
+    let nextRepetitions, nextIntervalDays, nextReviewMs;
+    let nextEf = ef;
+
+    if (quality < 3) {
+        // Lapse: reset reps, retry in 10 minutes.
+        nextRepetitions = 0;
+        nextIntervalDays = 0;
+        nextReviewMs = now + 10 * 60 * 1000;
+    } else {
+        if (reps === 0) nextIntervalDays = 1;
+        else if (reps === 1) nextIntervalDays = 6;
+        else nextIntervalDays = Math.round((card.interval || 1) * ef);
+        nextRepetitions = reps + 1;
+        nextReviewMs = now + nextIntervalDays * 24 * 60 * 60 * 1000;
+    }
+
+    // Update ease factor for any non-lapse rating (and for lapses we leave EF unchanged but clamp).
+    if (quality >= 3) {
+        nextEf = ef + (0.1 - (5 - quality) * (0.08 + (5 - quality) * 0.02));
+        if (nextEf < 1.3) nextEf = 1.3;
+    }
+
+    return {
+        easeFactor: nextEf,
+        repetitions: nextRepetitions,
+        interval: nextIntervalDays,
+        lastReviewedAt: new Date(now).toISOString(),
+        nextReviewAt: new Date(nextReviewMs).toISOString(),
+    };
+}
+
+async function getDueFlashcards(limit = 50) {
+    const cards = await getAllFlashcards();
+    const nowIso = new Date().toISOString();
+    return cards
+        .filter(c => (c.nextReviewAt || c.createdAt) <= nowIso)
+        .sort((a, b) => (a.nextReviewAt || a.createdAt).localeCompare(b.nextReviewAt || b.createdAt))
+        .slice(0, limit);
+}
+
+async function reviewFlashcard(id, quality) {
+    const db = await openDatabase();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction([STORE_NAME], 'readwrite');
+        const store = tx.objectStore(STORE_NAME);
+        const getReq = store.get(id);
+        getReq.onsuccess = () => {
+            const card = getReq.result;
+            if (!card) { reject('Card not found'); return; }
+            const updates = scheduleNext(card, quality);
+            const updated = { ...card, ...updates, updatedAt: new Date().toISOString() };
+            const putReq = store.put(updated);
+            putReq.onsuccess = () => resolve(updated);
+            putReq.onerror = (e) => reject('Error updating card: ' + e.target.error);
+        };
+        getReq.onerror = (e) => reject('Error reading card: ' + e.target.error);
+    });
+}
+
+// ==========================================
+// HISTORY INDEXEDDB MANAGEMENT
+// ==========================================
+
+async function addHistory(entry) {
+    const db = await openDatabase();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction([HISTORY_STORE], 'readwrite');
+        const store = tx.objectStore(HISTORY_STORE);
+        const record = {
+            id: crypto.randomUUID(),
+            originalText: entry.originalText,
+            translation: entry.translation,
+            targetLang: entry.targetLang || 'vi',
+            source: entry.source || 'unknown',
+            pageUrl: entry.pageUrl || '',
+            translatedAt: new Date().toISOString(),
+        };
+        const req = store.add(record);
+        req.onsuccess = () => {
+            resolve(record);
+            trimHistory(db);
+        };
+        req.onerror = (e) => reject('Error saving history: ' + e.target.error);
+    });
+}
+
+function trimHistory(db) {
+    const tx = db.transaction([HISTORY_STORE], 'readwrite');
+    const store = tx.objectStore(HISTORY_STORE);
+    const countReq = store.count();
+    countReq.onsuccess = () => {
+        if (countReq.result <= HISTORY_MAX) return;
+        const index = store.index('translatedAt');
+        const cursorReq = index.openCursor(null, 'next');
+        let toDelete = countReq.result - HISTORY_MAX;
+        cursorReq.onsuccess = (e) => {
+            const cursor = e.target.result;
+            if (!cursor || toDelete <= 0) return;
+            cursor.delete();
+            toDelete--;
+            cursor.continue();
+        };
+    };
+}
+
+async function getAllHistory() {
+    const db = await openDatabase();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction([HISTORY_STORE], 'readonly');
+        const store = tx.objectStore(HISTORY_STORE);
+        const req = store.getAll();
+        req.onsuccess = () => resolve(req.result || []);
+        req.onerror = (e) => reject('Error getting history: ' + e.target.error);
+    });
+}
+
+async function clearHistory() {
+    const db = await openDatabase();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction([HISTORY_STORE], 'readwrite');
+        const store = tx.objectStore(HISTORY_STORE);
+        const req = store.clear();
+        req.onsuccess = () => resolve(true);
+        req.onerror = (e) => reject('Error clearing history: ' + e.target.error);
+    });
+}
+
 // Handle messages from content scripts and popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'translateSelection') {
@@ -716,18 +890,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         sendResponse({ success: true });
     }
 
-    // NEW: Flashcard DB Actions Processing
-    else if (request.action === 'saveFlashcard') {
-        (async () => {
-            try {
-                const newCard = await addFlashcard(request.data);
-                sendResponse({ success: true, data: newCard });
-            } catch (error) {
-                sendResponse({ success: false, error: error.toString() });
-            }
-        })();
-        return true;
-    } else if (request.action === 'getFlashcards') {
+    // Flashcard DB Actions
+    else if (request.action === 'getFlashcards') {
         (async () => {
             try {
                 const cards = await getAllFlashcards();
@@ -759,19 +923,94 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             }
         })();
         return true;
+    } else if (request.action === 'saveFlashcard') {
+        (async () => {
+            try {
+                const newCard = await addFlashcard(request.data);
+                sendResponse({ success: true, data: newCard });
+            } catch (error) {
+                sendResponse({ success: false, error: error.toString() });
+            }
+        })();
+        return true;
+    } else if (request.action === 'getDueCards') {
+        (async () => {
+            try {
+                const cards = await getDueFlashcards(request.limit || 50);
+                sendResponse({ success: true, data: cards });
+            } catch (error) {
+                sendResponse({ success: false, error: error.toString() });
+            }
+        })();
+        return true;
+    } else if (request.action === 'reviewCard') {
+        (async () => {
+            try {
+                const card = await reviewFlashcard(request.id, request.quality);
+                sendResponse({ success: true, data: card });
+            } catch (error) {
+                sendResponse({ success: false, error: error.toString() });
+            }
+        })();
+        return true;
+    } else if (request.action === 'getHistory') {
+        (async () => {
+            try {
+                const history = await getAllHistory();
+                history.sort((a, b) => new Date(b.translatedAt) - new Date(a.translatedAt));
+                sendResponse({ success: true, data: history });
+            } catch (error) {
+                sendResponse({ success: false, error: error.toString() });
+            }
+        })();
+        return true;
+    } else if (request.action === 'deleteHistoryEntry') {
+        (async () => {
+            try {
+                const db = await openDatabase();
+                await new Promise((resolve, reject) => {
+                    const tx = db.transaction([HISTORY_STORE], 'readwrite');
+                    const req = tx.objectStore(HISTORY_STORE).delete(request.id);
+                    req.onsuccess = () => resolve();
+                    req.onerror = (e) => reject(e.target.error);
+                });
+                sendResponse({ success: true });
+            } catch (error) {
+                sendResponse({ success: false, error: error.toString() });
+            }
+        })();
+        return true;
+    } else if (request.action === 'clearHistory') {
+        (async () => {
+            try {
+                await clearHistory();
+                sendResponse({ success: true });
+            } catch (error) {
+                sendResponse({ success: false, error: error.toString() });
+            }
+        })();
+        return true;
     }
 
-    // NEW: Handle API calls via background script
+    // Handle API calls via background script
     else if (request.action === 'callTranslateAPI') {
-        // Async handling requires return true
         (async () => {
             try {
                 const { apiKey } = await chrome.storage.local.get('apiKey');
 
-                // Strategy:
-                // 1. If forceAI is true -> call Gemini
-                // 2. Else -> call MyMemory
-                // 3. If MyMemory fails -> call Gemini (Fallback)
+                const saveEntry = (result) => {
+                    if (!result.success || request.skipHistory) return;
+                    const translation = typeof result.data === 'object'
+                        ? (result.data.translation || '')
+                        : String(result.data || '');
+                    addHistory({
+                        originalText: request.text,
+                        translation,
+                        targetLang: request.targetLang || 'vi',
+                        source: result.source || 'unknown',
+                        pageUrl: sender.tab?.url || '',
+                    }).catch(() => {});
+                };
 
                 if (request.forceAI) {
                     if (!apiKey) {
@@ -783,14 +1022,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                         request.targetLang,
                         apiKey
                     );
-                    result.source = 'ai'; // Ensure source is marked
+                    result.source = 'ai';
                     sendResponse(result);
+                    saveEntry(result);
                 } else {
-                    // Strategy:
-                    // 1. If text is short (<= 3 words), try Google Dictionary API first
-                    // 2. If Google fails or text is long, try MyMemory
-                    // 3. If MyMemory fails, try Gemini API (Fallback)
-
                     const wordsCount = request.text.trim().split(/\s+/).length;
 
                     if (wordsCount <= 3) {
@@ -801,38 +1036,28 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                             );
                             if (googleResult.success) {
                                 sendResponse(googleResult);
-                                return; // Stop here if dictionary succeeds
+                                saveEntry(googleResult);
+                                return;
                             }
                         } catch (dictError) {
-                            console.log(
-                                'Google Dictionary failed or timeout, moving to AI:',
-                                dictError.message
-                            );
-                            // If dictionary fails for short text, we might want to jump directly to AI
-                            // because MyMemory is usually poor for single words
+                            console.log('Google Dictionary failed, moving to AI:', dictError.message);
                         }
                     }
 
-                    // Try MyMemory (either text is long, or Google Dict failed)
-                    // If text is short and Dict failed, we try MyMemory but with very short patience
                     try {
                         const mmResult = await translateWithMyMemory(
                             request.text,
                             request.targetLang
                         );
-
                         if (mmResult.success) {
                             sendResponse(mmResult);
+                            saveEntry(mmResult);
                             return;
                         }
                     } catch (mmError) {
-                        console.log(
-                            'MyMemory failed or timeout, falling back to AI:',
-                            mmError.message
-                        );
+                        console.log('MyMemory failed, falling back to AI:', mmError.message);
                     }
 
-                    // Final Fallback to Gemini
                     if (!apiKey) {
                         sendResponse({
                             success: false,
@@ -847,6 +1072,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                     );
                     aiResult.source = 'ai';
                     sendResponse(aiResult);
+                    saveEntry(aiResult);
                 }
             } catch (e) {
                 console.error('[AI Translator] callTranslateAPI Error:', e);

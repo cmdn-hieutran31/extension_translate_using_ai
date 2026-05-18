@@ -60,6 +60,7 @@ async function loadSettings() {
     if (data.hoverTranslationEnabled !== undefined) {
       hoverTranslationToggle.checked = data.hoverTranslationEnabled;
     }
+
   } catch (error) {
     console.error('Failed to load settings:', error);
   }
@@ -290,12 +291,9 @@ function setupEventListeners() {
         'success'
       );
 
-      // Notify all tabs
       chrome.tabs.query({}, (tabs) => {
         tabs.forEach((tab) => {
-          chrome.tabs
-            .sendMessage(tab.id, { action: 'settingsUpdated' })
-            .catch(() => {});
+          chrome.tabs.sendMessage(tab.id, { action: 'settingsUpdated' }).catch(() => {});
         });
       });
     } catch (error) {
@@ -303,6 +301,7 @@ function setupEventListeners() {
       showToast('Failed to update setting', 'error');
     }
   });
+
 }
 
 // Show toast notification
@@ -332,6 +331,42 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 setInterval(() => {
   updateResetTime();
 }, 60000);
+
+// ========== Keyboard Shortcuts ==========
+(function renderShortcuts() {
+  const isMac = navigator.platform.toUpperCase().includes('MAC') ||
+                navigator.userAgent.toUpperCase().includes('MAC');
+
+  const mod = isMac ? '⌥ Option' : 'Alt';
+  const shortcuts = [
+    { keys: `${mod} + Shift + T`, desc: 'Translate selected text' },
+    { keys: `${mod} + Shift + G`, desc: 'Check grammar of selected text' },
+    { keys: `${mod} + Shift + F`, desc: 'Open My Flashcards' },
+    { keys: `${mod} + Shift + S`, desc: 'Open Settings' },
+    { keys: 'Not set', desc: 'Open Translation History', note: 'Bind manually at chrome://extensions/shortcuts (Chrome cho phép tối đa 4 phím mặc định)' },
+  ];
+
+  const list = document.getElementById('shortcutList');
+  if (!list) return;
+
+  list.innerHTML = shortcuts.map(s => `
+    <div class="shortcut-item">
+      <kbd${s.keys === 'Not set' ? ' class="kbd-unset"' : ''}>${s.keys}</kbd>
+      <span>
+        ${s.desc}
+        ${s.note ? `<small class="shortcut-note">${s.note}</small>` : ''}
+      </span>
+    </div>
+  `).join('');
+})();
+
+// ========== Cross-nav buttons ==========
+document.getElementById('openHistoryBtn')?.addEventListener('click', () => {
+    chrome.tabs.create({ url: chrome.runtime.getURL('pages/history/history.html') });
+});
+document.getElementById('openFlashcardsBtn')?.addEventListener('click', () => {
+    chrome.tabs.create({ url: chrome.runtime.getURL('pages/flashcards/flashcards.html') });
+});
 
 // ========== Theme Initialization ==========
 const themeToggleBtn = document.getElementById('themeToggleBtn');
